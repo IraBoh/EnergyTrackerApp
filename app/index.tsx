@@ -63,6 +63,11 @@ function App() {
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
         <View style={styles.energyContainer}>
+          <Text style={styles.motivationalMessage}>
+            {energy <= 33 ? "Time to recharge! Take a break." :
+             energy <= 66 ? "You are okay, but remember to rest!" :
+             "Great job! Keep up the good energy!"}
+          </Text>
           <EnergyBar energy={energy} />
         </View>
 
@@ -92,7 +97,9 @@ function App() {
 
         {/* Clear Filters button */}
         <View style={styles.inputContainer}>
-          <Button title="Clear Filters" onPress={clearFilters} color="grey" />
+          <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersButton}>
+            <Text style={styles.clearFiltersText}>New Day ♻️</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Horizontal line */}
@@ -131,8 +138,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   energyContainer: {
-    marginBottom: 0, // Reduced space between energy bar and buttons
-    alignItems: 'center',
+    marginBottom: 20, // Space below the energy bar
+    alignItems: 'center', // Center the content
+    paddingTop: 10, // Add padding to the top if needed
+    paddingBottom: 10, // Add padding below to separate from other elements
+  },
+  motivationalMessage: {
+    color: 'black', // Text color
+    fontWeight: 'bold', // Bold text
+    marginBottom: 8, // Space between message and energy bar
+    textAlign: 'center', // Center the text
+    zIndex: 1, // Ensure the message is above other elements
+    position: 'relative', // Ensure it is positioned correctly
   },
   inputContainer: {
     alignItems: 'center',
@@ -175,6 +192,16 @@ const styles = StyleSheet.create({
     width: '80%', // Adjust width as needed
     alignSelf: 'center',
     marginVertical: 10, // Space above and below the line
+  },
+  clearFiltersButton: {
+    padding: 10,
+    backgroundColor: 'grey',
+    borderRadius: 5,
+  },
+  clearFiltersText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
   },
 });
 
