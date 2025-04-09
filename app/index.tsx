@@ -4,6 +4,7 @@ import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableO
 import EnergyBar from './components/EnergyBar';
 import ActivityButton from './components/ActivityButton';
 import MotivationMessage from './components/MotivationMessage';
+import InputField from './components/InputField';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
 function App() {
@@ -106,20 +107,11 @@ function App() {
 
         {/* Input field for new activity */}
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Add your activity"
-            value={newActivity}
-            onChangeText={setNewActivity}
+          <InputField
+            newActivity={newActivity}
+            setNewActivity={setNewActivity}
+            addActivity={addActivity}
           />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={() => addActivity('drain')} style={styles.iconButton}>
-              <Text style={styles.iconText}>🪫</Text> {/* Battery emoji for drain */}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => addActivity('boost')} style={styles.iconButton}>
-              <Text style={styles.iconText}>🔋</Text> {/* Battery emoji for boost */}
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
     </ScrollView>
