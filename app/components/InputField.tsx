@@ -39,14 +39,22 @@ const styles = StyleSheet.create({
       },
       buttonContainer: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: 150, // Adjust width to bring buttons closer together
+        justifyContent: 'space-around', // Space buttons evenly
+        marginVertical: 10, // Add some vertical spacing
       },
       iconButton: {
-        padding: 10, // Add padding around the icon
+        backgroundColor: '#f0f0f0', // Light background for visibility
+        padding: 15, // Increase padding for a larger touch area
+        borderRadius: 10, // Rounded corners
+        alignItems: 'center', // Center the emoji
+        shadowColor: '#000', // Shadow for depth
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 5, // For Android shadow
       },
       iconText: {
-        fontSize: 30, // Adjust size of the emoji
+        fontSize: 30, // Adjust size of the emojis
       },
 });
 
