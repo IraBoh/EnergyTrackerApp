@@ -64,15 +64,17 @@ function App() {
       <View style={styles.container}>
         <View style={styles.energyContainer}>
           <Text style={styles.motivationalMessage}>
-            {energy <= 33 ? "Time to recharge! Take a break." :
-             energy <= 66 ? "You are okay, but remember to rest!" :
+            {energy <= 30 ? "Time to recharge! Take a break." :
+             energy <= 60 ? "You are okay, but remember to rest!" :
              "Great job! Keep up the good energy!"}
           </Text>
           <EnergyBar energy={energy} />
         </View>
 
         <View style={styles.sections}>
+       
           <View style={styles.column}>
+          <Text style={styles.header}>Drained Energy</Text>
             {getOrderedDrains().map((item) => (
               <ActivityButton
                 key={item}
@@ -84,6 +86,7 @@ function App() {
           </View>
 
           <View style={styles.column}>
+          <Text style={styles.header}>Gave Energy</Text>
             {getOrderedBoosts().map((item) => (
               <ActivityButton
                 key={item}
@@ -146,7 +149,8 @@ const styles = StyleSheet.create({
   motivationalMessage: {
     color: 'black', // Text color
     fontWeight: 'bold', // Bold text
-    marginBottom: 8, // Space between message and energy bar
+    fontSize: 14,
+    marginBottom: 4, // Space between message and energy bar
     textAlign: 'center', // Center the text
     zIndex: 1, // Ensure the message is above other elements
     position: 'relative', // Ensure it is positioned correctly
@@ -182,9 +186,14 @@ const styles = StyleSheet.create({
   },
   column: {
     alignItems: 'center',
-    padding: 10,
+    padding: 0,
     borderRadius: 8,
     width: 150, // Set a fixed width for consistency
+  },
+  header: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 10,
   },
   separator: {
     height: 1,

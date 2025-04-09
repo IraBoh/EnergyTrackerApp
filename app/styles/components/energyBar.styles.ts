@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
   },
   energyBody: {
     width: 250,
-    height: 60,
+    height: 80,
     borderWidth: 3,
     borderColor: '#000',
     borderRadius: 8,
