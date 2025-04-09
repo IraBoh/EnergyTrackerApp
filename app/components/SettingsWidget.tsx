@@ -13,18 +13,21 @@ const SettingsWidget: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 20,
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
+    borderWidth: 0,
+    borderRadius: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+    zIndex: 10,
   },
   header: {
     fontSize: 20,
