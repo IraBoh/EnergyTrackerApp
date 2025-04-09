@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableOpacity, Text } from 'react-native';
 import EnergyBar from './components/EnergyBar';
 import ActivityButton from './components/ActivityButton';
-
+import MotivationMessage from './components/MotivationMessage';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
 function App() {
@@ -63,11 +63,7 @@ function App() {
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
         <View style={styles.energyContainer}>
-          <Text style={styles.motivationalMessage}>
-            {energy <= 30 ? "Time to recharge! Take a break." :
-             energy <= 60 ? "You are okay, but remember to rest!" :
-             "Great job! Keep up the good energy!"}
-          </Text>
+          <MotivationMessage energy={energy} />
           <EnergyBar energy={energy} />
         </View>
 
@@ -112,7 +108,7 @@ function App() {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Enter new activity"
+            placeholder="Add your activity"
             value={newActivity}
             onChangeText={setNewActivity}
           />
@@ -145,15 +141,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', // Center the content
     paddingTop: 10, // Add padding to the top if needed
     paddingBottom: 10, // Add padding below to separate from other elements
-  },
-  motivationalMessage: {
-    color: 'black', // Text color
-    fontWeight: 'bold', // Bold text
-    fontSize: 14,
-    marginBottom: 4, // Space between message and energy bar
-    textAlign: 'center', // Center the text
-    zIndex: 1, // Ensure the message is above other elements
-    position: 'relative', // Ensure it is positioned correctly
   },
   inputContainer: {
     alignItems: 'center',
