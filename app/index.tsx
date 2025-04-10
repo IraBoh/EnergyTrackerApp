@@ -11,11 +11,24 @@ const { width, height } = Dimensions.get('window'); // Get screen dimensions
 function App() {
   const [energy, setEnergy] = useState(75); // Initial energy level
   const [newActivity, setNewActivity] = useState(''); // State for new activity input
-  const [drains, setDrains] = useState(['Work', 'Overthinking', 'Sickness', 'Sitting', 'No break']); // Initial drains
-  const [boosts, setBoosts] = useState(['Walk 5 km', '9 Hours Sleep', 'Break every 45 minutes', 'Healthy Food', 'Laughing']); // Initial boosts
+  const [drains, setDrains] = useState<{ name: string; percentage: number }[]>([
+    { name: 'Work', percentage: 10 }, // Example percentage
+    { name: 'Overthinking', percentage: 15 },
+    { name: 'Sickness', percentage: 20 },
+    { name: 'Sitting', percentage: 5 },
+    { name: 'No break', percentage: 10 },
+  ]);
+  const [boosts, setBoosts] = useState<{ name: string; percentage: number }[]>([
+    { name: 'Walk 5 km', percentage: 20 },
+    { name: '9 Hours Sleep', percentage: 25 },
+    { name: 'Break every 45 minutes', percentage: 15 },
+    { name: 'Healthy Food', percentage: 30 },
+    { name: 'Laughing', percentage: 10 },
+  ]);
   const [selectedActivities, setSelectedActivities] = useState<{ [key: string]: boolean }>({}); // Track selected activities
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0]; // Initial position off-screen
+  const [activityPercentage, setActivityPercentage] = useState('');
 
   const energyChange = 10; // Fixed energy change for each activity
 
@@ -37,13 +50,19 @@ function App() {
   };
 
   const addActivity = (type: 'drain' | 'boost') => {
-    if (newActivity.trim() === '') return; // Prevent adding empty activities
+    if (newActivity.trim() === '' || activityPercentage.trim() === '') return; // Prevent adding empty activities
+    const percentage = parseFloat(activityPercentage); // Parse the percentage as a number
+
+    if (isNaN(percentage)) return; // Prevent adding if percentage is not a valid number
+
     if (type === 'drain') {
-      setDrains((prev) => [...prev, newActivity]); // Add new drain activity
+      setDrains((prev) => [...prev, { name: newActivity, percentage }]); // Add new drain activity
     } else if (type === 'boost') {
-      setBoosts((prev) => [...prev, newActivity]); // Add new boost activity
+      setBoosts((prev) => [...prev, { name: newActivity, percentage }]); // Add new boost activity
     }
+    
     setNewActivity(''); // Clear input field after adding
+    setActivityPercentage(''); // Clear percentage input field after adding
   };
 
   const clearFilters = () => {
@@ -52,14 +71,14 @@ function App() {
 
   // Function to reorder activities based on selection
   const getOrderedDrains = () => {
-    const selected = drains.filter(item => selectedActivities[item]);
-    const unselected = drains.filter(item => !selectedActivities[item]);
+    const selected = drains.filter(item => selectedActivities[item.name]);
+    const unselected = drains.filter(item => !selectedActivities[item.name]);
     return [...selected, ...unselected];
   };
 
   const getOrderedBoosts = () => {
-    const selected = boosts.filter(item => selectedActivities[item]);
-    const unselected = boosts.filter(item => !selectedActivities[item]);
+    const selected = boosts.filter(item => selectedActivities[item.name]);
+    const unselected = boosts.filter(item => !selectedActivities[item.name]);
     return [...selected, ...unselected];
   };
 
@@ -81,24 +100,24 @@ function App() {
         </View>
         <View style={styles.sections}>
           <View style={styles.column}>
-          <Text style={styles.header}>Drained Energy</Text>
+            <Text style={styles.header}>Drained Energy</Text>
             {getOrderedDrains().map((item) => (
               <ActivityButton
-                key={item}
-                label={item}
-                onPress={() => handleActivity('drain', item)} // Adjust energy on button press
-                borderColor={selectedActivities[item] ? 'red' : '#ccc'} // Highlight selected button
+                key={item.name}
+                label={`${item.name}: 🔻 - ${item.percentage}%`}
+                onPress={() => handleActivity('drain', item.name)}
+                borderColor={selectedActivities[item.name] ? 'red' : '#ccc'}
               />
             ))}
           </View>
           <View style={styles.column}>
-          <Text style={styles.header}>Gave Energy</Text>
+            <Text style={styles.header}>Gave Energy</Text>
             {getOrderedBoosts().map((item) => (
               <ActivityButton
-                key={item}
-                label={item}
-                onPress={() => handleActivity('boost', item)} // Adjust energy on button press
-                borderColor={selectedActivities[item] ? 'green' : '#ccc'} // Highlight selected button
+                key={item.name}
+                label={`${item.name}: + ${item.percentage}%`}
+                onPress={() => handleActivity('boost', item.name)}
+                borderColor={selectedActivities[item.name] ? 'green' : '#ccc'}
               />
             ))}
           </View>
@@ -116,6 +135,8 @@ function App() {
           <InputField
             newActivity={newActivity}
             setNewActivity={setNewActivity}
+            activityPercentage={activityPercentage}
+            setActivityPercentage={setActivityPercentage}
             addActivity={addActivity}
           />
         </View>
