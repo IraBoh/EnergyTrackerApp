@@ -26,7 +26,7 @@ const SettingsWidget: React.FC = () => {
       setNewDrainActivity('');
       setNewDrainPercentage('');
     } else {
-      console.error("Invalid input: Please enter a valid activity and percentage.");
+      console.error("Invalid input for drain activity.");
     }
   };
 
@@ -40,40 +40,61 @@ const SettingsWidget: React.FC = () => {
       setNewBoostActivity('');
       setNewBoostPercentage('');
     } else {
-      console.error("Invalid input: Please enter a valid activity and percentage.");
+      console.error("Invalid input for boost activity.");
     }
+  };
+
+  const updateDrainActivity = (id: string, name: string, percentage: string) => {
+    setDrainActivities((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, name, percentage: parseFloat(percentage) }
+          : item
+      )
+    );
+  };
+
+  const updateBoostActivity = (id: string, name: string, percentage: string) => {
+    setBoostActivities((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? { ...item, name, percentage: parseFloat(percentage) }
+          : item
+      )
+    );
   };
 
   return (
     <ScrollView style={styles.container}>
       {/* Top Section for Drains */}
       <View style={styles.drainSection}>
-        <Text style={styles.header}>Preferred Activities</Text>
-        <Text style={styles.header}>Drains</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            placeholder="Activity Name"
-            value={newDrainActivity}
-            onChangeText={setNewDrainActivity}
-            style={[styles.input, styles.activityInput]}
-          />
-          <TextInput
-            placeholder="%%"
-            value={newDrainPercentage}
-            onChangeText={setNewDrainPercentage}
-            style={[styles.input, styles.percentageInput]}
-            keyboardType="numeric"
-            maxLength={2}
-          />
-        </View>
+        <Text style={styles.header}>Default Drains Activities</Text>
+        
+        <Text style={styles.label}>Activity Name</Text>
+        <TextInput
+          placeholder="Enter activity name"
+          value={newDrainActivity}
+          onChangeText={setNewDrainActivity}
+          style={styles.input}
+        />
+        
+        <Text style={styles.label}>Percentage</Text>
+        <TextInput
+          placeholder="Enter percentage"
+          value={newDrainPercentage}
+          onChangeText={setNewDrainPercentage}
+          style={styles.input}
+          keyboardType="numeric"
+        />
+        
         <TouchableOpacity onPress={addDrainActivity} style={styles.iconButton}>
           <Text style={styles.iconText}>🪫</Text>
         </TouchableOpacity>
 
         {/* Render Drain Activities List using map */}
         {drainActivities.map((item) => (
-          <View key={item.id} style={[styles.listItem, styles.drainItem]}>
-            <Text style={styles.listText}>{item.name}: {item.percentage}%</Text>
+          <View key={item.id} style={styles.listItem}>
+            <Text>{item.name}: 🔻 - {item.percentage}%</Text>
           </View>
         ))}
       </View>
@@ -83,32 +104,33 @@ const SettingsWidget: React.FC = () => {
 
       {/* Bottom Section for Boosts */}
       <View style={styles.boostSection}>
-        <Text style={styles.header}>Preferred Activities</Text>
-        <Text style={styles.header}>Boosts</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            placeholder="Activity Name"
-            value={newBoostActivity}
-            onChangeText={setNewBoostActivity}
-            style={[styles.input, styles.activityInput]}
-          />
-          <TextInput
-            placeholder="%%"
-            value={newBoostPercentage}
-            onChangeText={setNewBoostPercentage}
-            style={[styles.input, styles.percentageInput]}
-            keyboardType="numeric"
-            maxLength={2}
-          />
-        </View>
+        <Text style={styles.header}>Default Boost Activities</Text>
+        
+        <Text style={styles.label}>Activity Name</Text>
+        <TextInput
+          placeholder="Enter activity name"
+          value={newBoostActivity}
+          onChangeText={setNewBoostActivity}
+          style={styles.input}
+        />
+        
+        <Text style={styles.label}>Percentage</Text>
+        <TextInput
+          placeholder="Enter percentage"
+          value={newBoostPercentage}
+          onChangeText={setNewBoostPercentage}
+          style={styles.input}
+          keyboardType="numeric"
+        />
+        
         <TouchableOpacity onPress={addBoostActivity} style={styles.iconButton}>
           <Text style={styles.iconText}>🔋</Text>
         </TouchableOpacity>
 
         {/* Render Boost Activities List using map */}
         {boostActivities.map((item) => (
-          <View key={item.id} style={[styles.listItem, styles.boostItem]}>
-            <Text style={styles.listText}>🔋 {item.name}: {item.percentage}%</Text>
+          <View key={item.id} style={styles.listItem}>
+            <Text>{item.name}: ✨ +{item.percentage}%</Text>
           </View>
         ))}
       </View>
@@ -127,35 +149,28 @@ const styles = StyleSheet.create({
   },
   boostSection: {
     marginTop: 10,
+    marginBottom: 100,
   },
   header: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  inputRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  activityInput: {
-    flex: 2,
-    marginRight: 10,
-  },
-  percentageInput: {
-    width: 60,
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
     padding: 10,
-    fontSize: 18,
+    marginBottom: 10,
   },
   separator: {
     height: 1,
     backgroundColor: '#ccc',
-    marginVertical: 10,
+    marginVertical: 40,
   },
   iconButton: {
     backgroundColor: '#f0f0f0',
@@ -167,20 +182,11 @@ const styles = StyleSheet.create({
     fontSize: 30,
   },
   listItem: {
-    padding: 15,
+    padding: 10,
+    backgroundColor: '#f9f9f9',
     borderRadius: 5,
-    marginBottom: 10,
-  },
-  drainItem: {
-    borderColor: 'red',
-    borderWidth: 2,
-  },
-  boostItem: {
-    borderColor: 'green',
-    borderWidth: 2,
-  },
-  listText: {
-    fontSize: 18,
+    marginBottom: 5,
+    marginTop: 5,
   },
 });
 
