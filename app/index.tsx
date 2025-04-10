@@ -36,17 +36,26 @@ function App() {
     // Allow selection only if the activity is not already selected
     if (selectedActivities[activity]) return;
 
-    if (type === 'drain') {
-      setEnergy((prev) => Math.max(0, prev - energyChange)); // Decrease energy
-    } else if (type === 'boost') {
-      setEnergy((prev) => Math.min(100, prev + energyChange)); // Increase energy
-    }
+    // Find the activity in the respective array
+    const activityItem = type === 'drain' 
+        ? drains.find(item => item.name === activity) 
+        : boosts.find(item => item.name === activity);
 
-    // Mark the activity as selected
-    setSelectedActivities((prev) => ({
-      ...prev,
-      [activity]: true, // Set selection to true
-    }));
+    if (activityItem) {
+        const energyChange = activityItem.percentage; // Get the percentage for the activity
+
+        if (type === 'drain') {
+            setEnergy((prev) => Math.max(0, prev - energyChange)); // Decrease energy
+        } else if (type === 'boost') {
+            setEnergy((prev) => Math.min(100, prev + energyChange)); // Increase energy
+        }
+
+        // Optionally, toggle the selection state
+        setSelectedActivities((prev) => ({
+            ...prev,
+            [activity]: !prev[activity], // Toggle selection
+        }));
+    }
   };
 
   const addActivity = (type: 'drain' | 'boost') => {
