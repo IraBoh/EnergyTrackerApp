@@ -29,6 +29,7 @@ function App() {
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0]; // Initial position off-screen
   const [activityPercentage, setActivityPercentage] = useState('');
+  const [editingActivity, setEditingActivity] = useState<{ name: string; percentage: number; originalName: string } | null>(null);
 
   const energyChange = 10; // Fixed energy change for each activity
 
@@ -100,6 +101,29 @@ function App() {
     }).start();
   };
 
+  const deleteActivity = (type: 'drain' | 'boost', activityName: string) => {
+    if (type === 'drain') {
+        setDrains((prev) => prev.filter(item => item.name !== activityName)); // Remove drain activity
+    } else if (type === 'boost') {
+        setBoosts((prev) => prev.filter(item => item.name !== activityName)); // Remove boost activity
+    }
+  };
+
+  const editActivity = (type: 'drain' | 'boost', activityName: string) => {
+    const activityItem = type === 'drain' 
+        ? drains.find(item => item.name === activityName) 
+        : boosts.find(item => item.name === activityName);
+
+    console.log('Editing Activity Item:', activityItem); // Log the retrieved item
+
+    if (activityItem) {
+        setEditingActivity({ 
+            ...activityItem, 
+            originalName: activityItem.name // Store the original name
+        });
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -111,12 +135,20 @@ function App() {
           <View style={styles.column}>
             <Text style={styles.header}>Drained Energy</Text>
             {getOrderedDrains().map((item) => (
-              <ActivityButton
-                key={item.name}
-                label={`${item.name}: 🔻 - ${item.percentage}%`}
-                onPress={() => handleActivity('drain', item.name)}
-                borderColor={selectedActivities[item.name] ? 'red' : '#ccc'}
-              />
+                <View key={item.name} style={styles.activityItem}>
+                    <ActivityButton
+                        label={`${item.name}: 🔻 - ${item.percentage}%`}
+                        onPress={() => handleActivity('drain', item.name)}
+                        borderColor={selectedActivities[item.name] ? 'red' : '#ccc'}
+                        
+                    />
+                    <TouchableOpacity onPress={() => editActivity('drain', item.name)}>
+                        <Text style={{ color: 'blue' }}>✏️</Text> {/* Pen icon */}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteActivity('drain', item.name)}>
+                        <Text style={{ color: 'red' }}>🗑️</Text> {/* Garbage icon */}
+                    </TouchableOpacity>
+                </View>
             ))}
           </View>
           <View style={styles.column}>
@@ -160,6 +192,60 @@ function App() {
       <TouchableOpacity onPress={toggleSettings} style={styles.settingsButton}>
         <Text style={styles.iconText}>✨</Text> {/* Use the gear emoji for settings */}
       </TouchableOpacity>
+
+      {editingActivity && (
+        <View>
+            <TextInput
+                value={editingActivity.name}
+                onChangeText={(text) => setEditingActivity({ ...editingActivity, name: text })}
+                style={styles.input}
+            />
+            <TextInput
+                value={String(editingActivity.percentage)} // Convert to string for TextInput
+                keyboardType="numeric"
+                maxLength={2}
+                onChangeText={(text) => {
+                    // Check if the input is empty or not a valid number
+                    const parsedValue = parseFloat(text);
+                    if (!isNaN(parsedValue) || text === '') {
+                        setEditingActivity({ 
+                            ...editingActivity, 
+                            percentage: text === '' ? 0 : parsedValue // Set to 0 if empty
+                        });
+                    }
+                }}
+                style={styles.input} // Add your input styles here
+            />
+            <Button title="Save" onPress={() => {
+                console.log('Editing Activity Before Save:', editingActivity); // Log the current editing activity
+
+                if (editingActivity) {
+                    const originalName = editingActivity.originalName; // Access the original name
+                    const newName = editingActivity.name; // Access the new name
+                    const isDrain = drains.some(d => d.name === originalName);
+                    
+                    if (isDrain) {
+                        setDrains((prev) => {
+                            const updatedDrains = prev.map(d => 
+                                d.name === originalName ? { ...editingActivity, name: newName } : d // Update the drain
+                            );
+                            console.log('Updated Drains:', updatedDrains); // Log the updated drains
+                            return updatedDrains;
+                        });
+                    } else {
+                        setBoosts((prev) => {
+                            const updatedBoosts = prev.map(b => 
+                                b.name === originalName ? { ...editingActivity, name: newName } : b // Update the boost
+                            );
+                            console.log('Updated Boosts:', updatedBoosts); // Log the updated boosts
+                            return updatedBoosts;
+                        });
+                    }
+                }
+                setEditingActivity(null); // Clear editing state
+            }} />
+        </View>
+      )}
     </View>
   );
 }
@@ -240,6 +326,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: 'black',
+  },
+  activityItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', // Align text and button
+    alignItems: 'center', // Center vertically
+    marginVertical: 5, // Space between items
+  },
+  input: {
+    // Add your input styles here
   },
 });
 
