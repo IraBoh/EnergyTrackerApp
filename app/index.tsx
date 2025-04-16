@@ -9,21 +9,24 @@ import SettingsWidget from './components/SettingsWidget';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
 function App() {
-  const [energy, setEnergy] = useState(75); // Initial energy level
+  const [energy, setEnergy] = useState(65); // Initial energy level
   const [newActivity, setNewActivity] = useState(''); // State for new activity input
   const [drains, setDrains] = useState<{ name: string; percentage: number }[]>([
-    { name: 'Work', percentage: 10 }, // Example percentage
-    { name: 'Overthinking', percentage: 15 },
-    { name: 'Sickness', percentage: 20 },
-    { name: 'Sitting', percentage: 5 },
+    { name: 'Work', percentage: 35 }, // Example percentage
+    { name: 'Sickness', percentage: 7 },
+    { name: 'Sitting', percentage: 10 },
+    { name: 'Bad Weather', percentage: 7 },
+    { name: 'Support to friend', percentage: 5 },
     { name: 'No break', percentage: 10 },
+
   ]);
   const [boosts, setBoosts] = useState<{ name: string; percentage: number }[]>([
     { name: 'Walk 5 km', percentage: 20 },
     { name: '9 Hours Sleep', percentage: 25 },
     { name: 'Break every 45 minutes', percentage: 15 },
-    { name: 'Healthy Food', percentage: 30 },
+    { name: 'Healthy Food', percentage: 15 },
     { name: 'Laughing', percentage: 10 },
+    { name: 'Drinking water', percentage: 5 },
   ]);
   const [selectedActivities, setSelectedActivities] = useState<{ [key: string]: boolean }>({}); // Track selected activities
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
@@ -137,7 +140,7 @@ function App() {
             {getOrderedDrains().map((item) => (
                 <View key={item.name} style={styles.activityItem}>
                     <ActivityButton
-                        label={`${item.name}: 🔻 - ${item.percentage}%`}
+                        label={`${item.name}:🔻- ${item.percentage}%`}
                         onPress={() => handleActivity('drain', item.name)}
                         borderColor={selectedActivities[item.name] ? 'red' : '#ccc'}
                         
@@ -154,12 +157,19 @@ function App() {
           <View style={styles.column}>
             <Text style={styles.header}>Gave Energy</Text>
             {getOrderedBoosts().map((item) => (
-              <ActivityButton
-                key={item.name}
-                label={`${item.name}: + ${item.percentage}%`}
-                onPress={() => handleActivity('boost', item.name)}
-                borderColor={selectedActivities[item.name] ? 'green' : '#ccc'}
-              />
+                <View key={item.name} style={styles.activityItem}>
+                    <ActivityButton
+                        label={`${item.name}: + ${item.percentage}%`}
+                        onPress={() => handleActivity('boost', item.name)}
+                        borderColor={selectedActivities[item.name] ? 'green' : '#ccc'}
+                    />
+                    <TouchableOpacity onPress={() => editActivity('boost', item.name)}>
+                        <Text style={{ color: 'blue' }}>✏️</Text> {/* Edit icon */}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteActivity('boost', item.name)}>
+                        <Text style={{ color: 'red' }}>🗑️</Text> {/* Delete icon */}
+                    </TouchableOpacity>
+                </View>
             ))}
           </View>
         </View>
@@ -194,7 +204,7 @@ function App() {
       </TouchableOpacity>
 
       {editingActivity && (
-        <View>
+        <View style={styles.editingContainer}>
             <TextInput
                 value={editingActivity.name}
                 onChangeText={(text) => setEditingActivity({ ...editingActivity, name: text })}
@@ -333,8 +343,23 @@ const styles = StyleSheet.create({
     alignItems: 'center', // Center vertically
     marginVertical: 5, // Space between items
   },
+  editingContainer: {
+    padding: 20, // Add padding for the container
+    backgroundColor: '#fff', // Background color
+    borderRadius: 5, // Rounded corners
+    shadowColor: '#000', // Shadow for depth
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow
+    marginBottom: 20, // Space below the editing section
+  },
   input: {
-    // Add your input styles here
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10, // Space between inputs
   },
 });
 
