@@ -1,5 +1,5 @@
 // app/index.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableOpacity, Text, Animated } from 'react-native';
 import EnergyBar from './components/EnergyBar';
 import ActivityButton from './components/ActivityButton';
@@ -9,7 +9,7 @@ import SettingsWidget from './components/SettingsWidget';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
 
 function App() {
-  const [energy, setEnergy] = useState(65); // Initial energy level
+  const [energy, setEnergy] = useState(0); // Renamed here
   const [newActivity, setNewActivity] = useState(''); // State for new activity input
   const [drains, setDrains] = useState<{ name: string; percentage: number }[]>([
     { name: 'Work', percentage: 35 }, // Example percentage
@@ -35,6 +35,25 @@ function App() {
   const [editingActivity, setEditingActivity] = useState<{ name: string; percentage: number; originalName: string } | null>(null);
 
   const energyChange = 10; // Fixed energy change for each activity
+
+  useEffect(() => {
+    const fetchEnergy = async () => {
+      try {
+        const response = await fetch('http://192.168.1.138:5000/current-energy-level')
+        console.log(response);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        setEnergy(data.currentEnergyLevel); // Updated to use setEnergy
+      } catch (error) {
+
+        console.error('Error fetching energy level:', error);
+      }
+    };
+
+    fetchEnergy();
+  }, []);
 
   const handleActivity = (type: 'drain' | 'boost', activity: string) => {
     // Allow selection only if the activity is not already selected
@@ -146,7 +165,7 @@ function App() {
                         
                     />
                     <TouchableOpacity onPress={() => editActivity('drain', item.name)}>
-                        <Text style={{ color: 'blue' }}>✏️</Text> {/* Pen icon */}
+                        <Text style={{ color: 'blue' }}>📝</Text> {/* Pen icon */}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => deleteActivity('drain', item.name)}>
                         <Text style={{ color: 'red' }}>🗑️</Text> {/* Garbage icon */}
@@ -159,12 +178,12 @@ function App() {
             {getOrderedBoosts().map((item) => (
                 <View key={item.name} style={styles.activityItem}>
                     <ActivityButton
-                        label={`${item.name}: + ${item.percentage}%`}
+                        label={`${item.name}:+ ${item.percentage}%`}
                         onPress={() => handleActivity('boost', item.name)}
                         borderColor={selectedActivities[item.name] ? 'green' : '#ccc'}
                     />
                     <TouchableOpacity onPress={() => editActivity('boost', item.name)}>
-                        <Text style={{ color: 'blue' }}>✏️</Text> {/* Edit icon */}
+                        <Text style={{ color: 'blue' }}>📝</Text> {/* Edit icon */}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => deleteActivity('boost', item.name)}>
                         <Text style={{ color: 'red' }}>🗑️</Text> {/* Delete icon */}
