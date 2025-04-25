@@ -11,28 +11,14 @@ const { width, height } = Dimensions.get('window'); // Get screen dimensions
 function App() {
   const [energy, setEnergy] = useState(0); // Renamed here
   const [newActivity, setNewActivity] = useState(''); // State for new activity input
-  const [drains, setDrains] = useState<{ name: string; percentage: number }[]>([
-    { name: 'Work', percentage: 35 }, // Example percentage
-    { name: 'Sickness', percentage: 7 },
-    { name: 'Sitting', percentage: 10 },
-    { name: 'Bad Weather', percentage: 7 },
-    { name: 'Support to friend', percentage: 5 },
-    { name: 'No break', percentage: 10 },
-
-  ]);
-  const [boosts, setBoosts] = useState<{ name: string; percentage: number }[]>([
-    { name: 'Walk 5 km', percentage: 20 },
-    { name: '9 Hours Sleep', percentage: 25 },
-    { name: 'Break every 45 minutes', percentage: 15 },
-    { name: 'Healthy Food', percentage: 15 },
-    { name: 'Laughing', percentage: 10 },
-    { name: 'Drinking water', percentage: 5 },
-  ]);
   const [selectedActivities, setSelectedActivities] = useState<{ [key: string]: boolean }>({}); // Track selected activities
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0]; // Initial position off-screen
   const [activityPercentage, setActivityPercentage] = useState('');
   const [editingActivity, setEditingActivity] = useState<{ name: string; percentage: number; originalName: string } | null>(null);
+  const [drains, setDrains] = useState<{ name: string; percentage: number }[]>([]);
+  const [boosts, setBoosts] = useState<{ name: string; percentage: number }[]>([]);
+  
 
   const energyChange = 10; // Fixed energy change for each activity
 
@@ -111,20 +97,59 @@ function App() {
     }
   };
 
-  const addActivity = (type: 'drain' | 'boost') => {
+  const fetchActivities = async () => {
+    try {
+      const response = await fetch('http://192.168.1.138:5000/activities');
+      const activities = await response.json();
+      const drains = activities.filter((activity: { type: string }) => activity.type === 'drain');
+      const boosts = activities.filter((activity: { type: string }) => activity.type === 'boost');
+      setDrains(drains);
+      setBoosts(boosts);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
+  const addActivity = async (type: 'drain' | 'boost') => {
     if (newActivity.trim() === '' || activityPercentage.trim() === '') return; // Prevent adding empty activities
     const percentage = parseFloat(activityPercentage); // Parse the percentage as a number
 
     if (isNaN(percentage)) return; // Prevent adding if percentage is not a valid number
 
-    if (type === 'drain') {
-      setDrains((prev) => [...prev, { name: newActivity, percentage }]); // Add new drain activity
-    } else if (type === 'boost') {
-      setBoosts((prev) => [...prev, { name: newActivity, percentage }]); // Add new boost activity
+    const activityData = { name: newActivity, percentage, type };
+
+    try {
+        const response = await fetch('http://192.168.1.138:5000/activities/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(activityData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add activity');
+        }
+
+        const newActivityFromServer = await response.json();
+
+        // Update local state with the new activity
+        if (type === 'drain') {
+            setDrains((prev) => [...prev, newActivityFromServer.data]);
+        } else if (type === 'boost') {
+            setBoosts((prev) => [...prev, newActivityFromServer.data]);
+        }
+
+        // Clear input fields after adding
+        setNewActivity('');
+        setActivityPercentage('');
+    } catch (error) {
+        console.error('Error adding activity:', error);
     }
-    
-    setNewActivity(''); // Clear input field after adding
-    setActivityPercentage(''); // Clear percentage input field after adding
   };
 
   const clearFilters = () => {
