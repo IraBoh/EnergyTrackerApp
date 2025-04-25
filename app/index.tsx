@@ -55,6 +55,27 @@ function App() {
     fetchEnergy();
   }, []);
 
+  const updateEnergyLevel = async (newLevel: number) => {
+    try {
+        const response = await fetch('http://192.168.1.138:5000/current-energy-level', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ currentEnergyLevel: newLevel }), // Ensure this matches the backend
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setEnergy(data.currentEnergyLevel); // Update the state with the new level
+    } catch (error) {
+        console.error('Error updating energy level:', error);
+    }
+  };
+
   const handleActivity = (type: 'drain' | 'boost', activity: string) => {
     // Allow selection only if the activity is not already selected
     if (selectedActivities[activity]) return;
@@ -66,12 +87,21 @@ function App() {
 
     if (activityItem) {
         const energyChange = activityItem.percentage; // Get the percentage for the activity
-
+        let newEnergyLevel: number; // Declare newEnergyLevel as a number
+        
+        // Calculate new energy level based on activity type
         if (type === 'drain') {
-            setEnergy((prev) => Math.max(0, prev - energyChange)); // Decrease energy
+          newEnergyLevel = Math.max(0, energy - energyChange); // Decrease energy
         } else if (type === 'boost') {
-            setEnergy((prev) => Math.min(100, prev + energyChange)); // Increase energy
+            newEnergyLevel = Math.min(100, energy + energyChange); // Increase energy
+        } else {
+            newEnergyLevel = energy; // Default to current energy if type is not recognized
         }
+
+         // Update local state
+         setEnergy(newEnergyLevel);
+        // Call the function to update the energy level in the database
+        updateEnergyLevel(newEnergyLevel);
 
         // Optionally, toggle the selection state
         setSelectedActivities((prev) => ({
