@@ -210,7 +210,7 @@ function App() {
         </View>
         <View style={styles.sections}>
           <View style={styles.column}>
-            <Text style={styles.header}>Drained Energy</Text>
+            <Text style={[styles.header, styles.drainedEnergy]}>Drained Energy</Text>
             {getOrderedDrains().map((item) => (
                 <View key={item.name} style={styles.activityItem}>
                     <ActivityButton
@@ -229,7 +229,7 @@ function App() {
             ))}
           </View>
           <View style={styles.column}>
-            <Text style={styles.header}>Gave Energy</Text>
+            <Text style={[styles.header, styles.gaveEnergy]}>Gave Energy</Text>
             {getOrderedBoosts().map((item) => (
                 <View key={item.name} style={styles.activityItem}>
                     <ActivityButton
@@ -383,6 +383,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 10,
+  },
+  drainedEnergy: {
+    color: 'red', // Color for drained energy
+  },
+  gaveEnergy: {
+    color: 'green', // Color for gave energy
   },
   separator: {
     height: 1,
