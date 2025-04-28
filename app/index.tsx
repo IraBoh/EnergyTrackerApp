@@ -20,7 +20,7 @@ function App() {
   const [boosts, setBoosts] = useState<{ name: string; percentage: number }[]>([]);
   
 
-  const energyChange = 10; // Fixed energy change for each activity
+ 
 
   useEffect(() => {
     const fetchEnergy = async () => {
@@ -77,9 +77,9 @@ function App() {
         
         // Calculate new energy level based on activity type
         if (type === 'drain') {
-          newEnergyLevel = Math.max(0, energy - energyChange); // Decrease energy
+          newEnergyLevel = energy - energyChange; // Allow negative values
         } else if (type === 'boost') {
-            newEnergyLevel = Math.min(100, energy + energyChange); // Increase energy
+            newEnergyLevel = energy + energyChange; // Allow values above 100
         } else {
             newEnergyLevel = energy; // Default to current energy if type is not recognized
         }
@@ -263,6 +263,7 @@ function App() {
               
          {/* Display Total Percentages */}
          <View style={styles.columnContainer}>
+          
           <View style={[styles.columnSum, styles.drainedColumn, { height: `${Math.min(sumPercentDrains, 100)}%` }]}>
             <Text style={styles.columnText}>Total Drained: {sumPercentDrains}%</Text>
           </View>
@@ -272,13 +273,17 @@ function App() {
         </View>
          {/* Horizontal line */}
          <View style={styles.separator} />
+         <View style={styles.energyContainer}>
+          <MotivationMessage energy={energy} />
+          <EnergyBar energy={energy} />
+        </View>
+        <View style={styles.separator} />
         {/* Clear Filters button */}
         <View style={styles.inputContainer}>
           <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersButton}>
             <Text style={styles.clearFiltersText}>New Day ♻️</Text>
           </TouchableOpacity>
         </View>
-       
         {/* Horizontal line */}
         <View style={styles.separator} />
         {/* Input field for new activity */}
@@ -479,7 +484,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
 },
 columnSum: {
-    width: '45%', // Set a width for the columns
+    width: '40%', // Set a width for the columns
     borderRadius: 5,
     justifyContent: 'center',
     alignItems: 'center',
@@ -495,6 +500,8 @@ gaveColumn: {
 columnText: {
     color: 'white', // Text color for better visibility
     fontWeight: 'bold',
+    
+
 },
 balanceText: {
     fontSize: 16, // Font size

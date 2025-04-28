@@ -3,8 +3,8 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   energyContainer: {
     alignItems: 'center',
-    marginBottom: 0,
-    marginTop: -50,
+    marginTop: 50,
+
   },
   energyWrapper: {
     flexDirection: 'row',
