@@ -201,6 +201,15 @@ function App() {
     }
   };
 
+  // Calculate total percentages based on selected activities
+  const sumPercentDrains = drains
+    .filter(activity => selectedActivities[activity.name]) // Only include selected activities
+    .reduce((total, activity) => total + activity.percentage, 0);//Understand why reduce is used here
+
+  const sumPercentBoost = boosts
+    .filter(activity => selectedActivities[activity.name]) // Only include selected activities
+    .reduce((total, activity) => total + activity.percentage, 0);
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -247,12 +256,22 @@ function App() {
             ))}
           </View>
         </View>
+               {/* Horizontal line */}
+               <View style={styles.separator} />
+         {/* Display Total Percentages */}
+         <View style={styles.barContainer}>
+          <Text style={[styles.header, styles.drainedEnergy]}>Total Drained: {sumPercentDrains}%</Text>
+          <Text style={[styles.header, styles.gaveEnergy]}>Total Gave: {sumPercentBoost}%</Text>
+        </View>
+         {/* Horizontal line */}
+         <View style={styles.separator} />
         {/* Clear Filters button */}
         <View style={styles.inputContainer}>
           <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersButton}>
             <Text style={styles.clearFiltersText}>New Day ♻️</Text>
           </TouchableOpacity>
         </View>
+       
         {/* Horizontal line */}
         <View style={styles.separator} />
         {/* Input field for new activity */}
@@ -265,6 +284,7 @@ function App() {
             addActivity={addActivity}
           />
         </View>
+       
       </ScrollView>
 
       {/* Render the SettingsWidget outside the ScrollView */}
@@ -440,6 +460,9 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 10, // Space between inputs
+  },
+  barContainer: {
+    marginTop: 20,
   },
 });
 
