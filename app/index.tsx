@@ -258,10 +258,17 @@ function App() {
         </View>
                {/* Horizontal line */}
                <View style={styles.separator} />
+          
+          <Text style={styles.balanceText}>✨ Pay attention to how your resources are divided. For better long-term health, keep the columns equal or focus on activities that boost the green column!</Text>
+              
          {/* Display Total Percentages */}
-         <View style={styles.barContainer}>
-          <Text style={[styles.header, styles.drainedEnergy]}>Total Drained: {sumPercentDrains}%</Text>
-          <Text style={[styles.header, styles.gaveEnergy]}>Total Gave: {sumPercentBoost}%</Text>
+         <View style={styles.columnContainer}>
+          <View style={[styles.columnSum, styles.drainedColumn, { height: `${Math.min(sumPercentDrains, 100)}%` }]}>
+            <Text style={styles.columnText}>Total Drained: {sumPercentDrains}%</Text>
+          </View>
+          <View style={[styles.columnSum, styles.gaveColumn, { height: `${Math.min(sumPercentBoost, 100)}%` }]}>
+            <Text style={styles.columnText}>Total Gave: {sumPercentBoost}%</Text>
+          </View>
         </View>
          {/* Horizontal line */}
          <View style={styles.separator} />
@@ -464,6 +471,45 @@ const styles = StyleSheet.create({
   barContainer: {
     marginTop: 20,
   },
+  columnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end', // Align columns to the bottom
+    height: 200, // Set a fixed height for the container
+    marginTop: 20,
+},
+columnSum: {
+    width: '45%', // Set a width for the columns
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 5,
+    marginRight: 5,
+},
+drainedColumn: {
+    backgroundColor: 'red', // Color for drained energy
+},
+gaveColumn: {
+    backgroundColor: 'green', // Color for gave energy
+},
+columnText: {
+    color: 'white', // Text color for better visibility
+    fontWeight: 'bold',
+},
+balanceText: {
+    fontSize: 16, // Font size
+    color: 'black', // Text color
+    backgroundColor: '#f9f9f9', // Gainsboro background for visibility
+    padding: 10, // Padding around the text
+    borderRadius: 5, // Rounded corners
+    marginTop: 20, // Space above the text
+    textAlign: 'center', // Center the text
+    shadowColor: '#000', // Shadow for depth
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow
+},
 });
 
 export default App;
