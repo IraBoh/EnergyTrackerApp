@@ -15,9 +15,9 @@ function App() {
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0]; // Initial position off-screen
   const [activityPercentage, setActivityPercentage] = useState('');
-  const [editingActivity, setEditingActivity] = useState<{ name: string; percentage: number; originalName: string } | null>(null);
-  const [drains, setDrains] = useState<{ name: string; percentage: number }[]>([]);
-  const [boosts, setBoosts] = useState<{ name: string; percentage: number }[]>([]);
+  const [editingActivity, setEditingActivity] = useState<{_id: string; name: string; percentage: number; originalName: string } | null>(null);
+  const [drains, setDrains] = useState<{_id: string; name: string; percentage: number }[]>([]);
+  const [boosts, setBoosts] = useState<{_id: string; name: string; percentage: number }[]>([]);
   
 
  
@@ -62,14 +62,14 @@ function App() {
     }
   };
 
-  const handleActivity = (type: 'drain' | 'boost', activity: string) => {
+  const handleActivity = (type: 'drain' | 'boost', activityId: string) => {
     // Allow selection only if the activity is not already selected
-    if (selectedActivities[activity]) return;
+    if (selectedActivities[activityId]) return;
 
     // Find the activity in the respective array
     const activityItem = type === 'drain' 
-        ? drains.find(item => item.name === activity) 
-        : boosts.find(item => item.name === activity);
+        ? drains.find(item => item._id === activityId) 
+        : boosts.find(item => item._id === activityId);
 
     if (activityItem) {
         const energyChange = activityItem.percentage; // Get the percentage for the activity
@@ -92,7 +92,7 @@ function App() {
         // Optionally, toggle the selection state
         setSelectedActivities((prev) => ({
             ...prev,
-            [activity]: !prev[activity], // Toggle selection
+            [activityId]: !prev[activityId], // Toggle selection
         }));
     }
   };
@@ -101,6 +101,7 @@ function App() {
     try {
       const response = await fetch('http://192.168.1.138:5000/activities');
       const activities = await response.json();
+      console.log('Fetched Activities:', activities.filter((activity: { type: string }) => activity.type === 'drain'));
       const drains = activities.filter((activity: { type: string }) => activity.type === 'drain');
       const boosts = activities.filter((activity: { type: string }) => activity.type === 'boost');
       setDrains(drains);
@@ -158,14 +159,14 @@ function App() {
 
   // Function to reorder activities based on selection
   const getOrderedDrains = () => {
-    const selected = drains.filter(item => selectedActivities[item.name]);
-    const unselected = drains.filter(item => !selectedActivities[item.name]);
+    const selected = drains.filter(item => selectedActivities[item._id]);
+    const unselected = drains.filter(item => !selectedActivities[item._id]);
     return [...selected, ...unselected];
   };
 
   const getOrderedBoosts = () => {
-    const selected = boosts.filter(item => selectedActivities[item.name]);
-    const unselected = boosts.filter(item => !selectedActivities[item.name]);
+    const selected = boosts.filter(item => selectedActivities[item._id]);
+    const unselected = boosts.filter(item => !selectedActivities[item._id]);
     return [...selected, ...unselected];
   };
 
@@ -178,36 +179,97 @@ function App() {
     }).start();
   };
 
-  const deleteActivity = (type: 'drain' | 'boost', activityName: string) => {
+  const deleteActivity = (type: 'drain' | 'boost', activityId: string) => {
     if (type === 'drain') {
-        setDrains((prev) => prev.filter(item => item.name !== activityName)); // Remove drain activity
+        setDrains((prev) => prev.filter(item => item._id !== activityId)); // Remove drain activity
     } else if (type === 'boost') {
-        setBoosts((prev) => prev.filter(item => item.name !== activityName)); // Remove boost activity
+        setBoosts((prev) => prev.filter(item => item._id !== activityId)); // Remove boost activity
     }
   };
 
-  const editActivity = (type: 'drain' | 'boost', activityName: string) => {
+  const editActivity = (type: 'drain' | 'boost', activityId: string) => {
+    console.log('Editing Activity ID:', activityId); // Log the ID being passed
+
     const activityItem = type === 'drain' 
-        ? drains.find(item => item.name === activityName) 
-        : boosts.find(item => item.name === activityName);
+        ? drains.find(item => item._id === activityId) 
+        : boosts.find(item => item._id === activityId);
 
-    console.log('Editing Activity Item:', activityItem); // Log the retrieved item
+    console.log('Editing Activity Item:', activityItem?._id); // Log the retrieved item
 
-    if (activityItem) {
-        setEditingActivity({ 
-            ...activityItem, 
-            originalName: activityItem.name // Store the original name
-        });
+    if (!activityItem) {
+        console.error('Activity item not found:', activityId);
+        return; // Exit if the item is not found
     }
+
+    // Set the editing state, including the _id
+    setEditingActivity({ 
+        ...activityItem, 
+        originalName: activityItem.name,
+    });
+  };
+
+  const saveActivity = async () => {
+    console.log('Editing Activity Before Save:', editingActivity); // Log the current editing activity
+
+    if (editingActivity) {
+        const originalId = editingActivity._id; // Get the unique ID of the activity being edited
+        const newName = editingActivity.name; // Access the new name
+        const newPercentage = editingActivity.percentage; // Access the new percentage
+        const isDrain = drains.some(d => d._id === originalId); // Check if it's a drain using ID
+        
+        // Update local state
+        if (isDrain) {
+            setDrains((prev) => {
+                const updatedDrains = prev.map(d => 
+                    d._id === originalId ? { ...editingActivity } : d // Update only the specific drain by ID
+                );
+                console.log('Updated Drains:', updatedDrains); // Log the updated drains
+                return updatedDrains;
+            });
+        } else {
+            setBoosts((prev) => {
+                const updatedBoosts = prev.map(b => 
+                    b._id === originalId ? { ...editingActivity } : b // Update only the specific boost by ID
+                );
+                console.log('Updated Boosts:', updatedBoosts); // Log the updated boosts
+                return updatedBoosts;
+            });
+        }
+
+        // Call the function to update the database using the unique ID
+        try {
+            const response = await fetch(`http://192.168.1.138:5000/activities/${originalId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: newName, // Send the updated name
+                    percentage: newPercentage, // Send the updated percentage
+                    type: isDrain ? 'drain' : 'boost' // Send the type based on the original activity
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update activity');
+            }
+
+            const data = await response.json();
+            console.log('Activity updated successfully:', data);
+        } catch (error) {
+            console.error('Error updating activity:', error);
+        }
+    }
+    setEditingActivity(null); // Clear editing state
   };
 
   // Calculate total percentages based on selected activities
   const sumPercentDrains = drains
-    .filter(activity => selectedActivities[activity.name]) // Only include selected activities
+    .filter(activity => selectedActivities[activity._id]) // Only include selected activities
     .reduce((total, activity) => total + activity.percentage, 0);//Understand why reduce is used here
 
   const sumPercentBoost = boosts
-    .filter(activity => selectedActivities[activity.name]) // Only include selected activities
+    .filter(activity => selectedActivities[activity._id]) // Only include selected activities
     .reduce((total, activity) => total + activity.percentage, 0);
 
   // Get top 8 draining and boosting activities
@@ -232,17 +294,17 @@ function App() {
           <View style={styles.column}>
             <Text style={[styles.header, styles.drainedEnergy]}>Drained Energy</Text>
             {getOrderedDrains().map((item) => (
-                <View key={item.name} style={styles.activityItem}>
+                <View key={item._id} style={styles.activityItem}>
                     <ActivityButton
                         label={`${item.name}:🔻- ${item.percentage}%`}
-                        onPress={() => handleActivity('drain', item.name)}
-                        borderColor={selectedActivities[item.name] ? 'red' : '#ccc'}
+                        onPress={() => handleActivity('drain', item._id)}
+                        borderColor={selectedActivities[item._id] ? 'red' : '#ccc'}
                         
                     />
-                    <TouchableOpacity onPress={() => editActivity('drain', item.name)}>
+                    <TouchableOpacity onPress={() => editActivity('drain', item._id)}>
                         <Text style={{ color: 'blue' }}>📝</Text> {/* Pen icon */}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteActivity('drain', item.name)}>
+                    <TouchableOpacity onPress={() => deleteActivity('drain', item._id)}>
                         <Text style={{ color: 'red' }}>🗑️</Text> {/* Garbage icon */}
                     </TouchableOpacity>
                 </View>
@@ -251,16 +313,16 @@ function App() {
           <View style={styles.column}>
             <Text style={[styles.header, styles.gaveEnergy]}>Gave Energy</Text>
             {getOrderedBoosts().map((item) => (
-                <View key={item.name} style={styles.activityItem}>
+                <View key={item._id} style={styles.activityItem}>
                     <ActivityButton
                         label={`${item.name}:+ ${item.percentage}%`}
-                        onPress={() => handleActivity('boost', item.name)}
-                        borderColor={selectedActivities[item.name] ? 'green' : '#ccc'}
+                        onPress={() => handleActivity('boost', item._id)}
+                        borderColor={selectedActivities[item._id] ? 'green' : '#ccc'}
                     />
-                    <TouchableOpacity onPress={() => editActivity('boost', item.name)}>
+                    <TouchableOpacity onPress={() => editActivity('boost', item._id)}>
                         <Text style={{ color: 'blue' }}>📝</Text> {/* Edit icon */}
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteActivity('boost', item.name)}>
+                    <TouchableOpacity onPress={() => deleteActivity('boost', item._id)}>
                         <Text style={{ color: 'red' }}>🗑️</Text> {/* Delete icon */}
                     </TouchableOpacity>
                 </View>
@@ -315,7 +377,7 @@ function App() {
             <Text style={styles.header}>Top Draining Activities</Text>
             <View style={styles.columnsContainer}>
                 {topDrains.map(activity => (
-                    <View key={activity.name} style={styles.columnTopActivities}>
+                    <View key={activity._id} style={styles.columnTopActivities}>
                         <View style={[styles.energyFill, { 
                             height: baseHeight + activity.percentage, // Combine base height with the percentage
                             backgroundColor: 'red' 
@@ -328,7 +390,7 @@ function App() {
           <Text style={styles.header}>Top Boosting Activities</Text>
             <View style={styles.columnsContainer}>
                 {topBoosts.map(activity => (
-                    <View key={activity.name} style={styles.columnTopActivities}>
+                    <View key={activity._id} style={styles.columnTopActivities}>
                         <View style={[styles.energyFill, { 
                             height: baseHeight + activity.percentage, // Combine base height with the percentage
                             backgroundColor: 'green' 
@@ -379,34 +441,7 @@ function App() {
                 }}
                 style={styles.input} // Add your input styles here
             />
-            <Button title="Save" onPress={() => {
-                console.log('Editing Activity Before Save:', editingActivity); // Log the current editing activity
-
-                if (editingActivity) {
-                    const originalName = editingActivity.originalName; // Access the original name
-                    const newName = editingActivity.name; // Access the new name
-                    const isDrain = drains.some(d => d.name === originalName);
-                    
-                    if (isDrain) {
-                        setDrains((prev) => {
-                            const updatedDrains = prev.map(d => 
-                                d.name === originalName ? { ...editingActivity, name: newName } : d // Update the drain
-                            );
-                            console.log('Updated Drains:', updatedDrains); // Log the updated drains
-                            return updatedDrains;
-                        });
-                    } else {
-                        setBoosts((prev) => {
-                            const updatedBoosts = prev.map(b => 
-                                b.name === originalName ? { ...editingActivity, name: newName } : b // Update the boost
-                            );
-                            console.log('Updated Boosts:', updatedBoosts); // Log the updated boosts
-                            return updatedBoosts;
-                        });
-                    }
-                }
-                setEditingActivity(null); // Clear editing state
-            }} />
+            <Button title="Save" onPress={saveActivity} />
         </View>
       )}
     </View>
