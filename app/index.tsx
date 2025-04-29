@@ -210,6 +210,17 @@ function App() {
     .filter(activity => selectedActivities[activity.name]) // Only include selected activities
     .reduce((total, activity) => total + activity.percentage, 0);
 
+  // Get top 8 draining and boosting activities
+  const topDrains = drains
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 8);
+
+  const topBoosts = boosts
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 8);
+
+  const baseHeight = 40; // Base height for visibility
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -284,6 +295,7 @@ function App() {
             <Text style={styles.clearFiltersText}>New Day ♻️</Text>
           </TouchableOpacity>
         </View>
+     
         {/* Horizontal line */}
         <View style={styles.separator} />
         {/* Input field for new activity */}
@@ -296,6 +308,41 @@ function App() {
             addActivity={addActivity}
           />
         </View>
+        <View style={styles.separator} />
+      <View>
+
+      <ScrollView style={styles.containerBars}>
+            <Text style={styles.header}>Top Draining Activities</Text>
+            <View style={styles.columnsContainer}>
+                {topDrains.map(activity => (
+                    <View key={activity.name} style={styles.columnTopActivities}>
+                        <View style={[styles.energyFill, { 
+                            height: baseHeight + activity.percentage, // Combine base height with the percentage
+                            backgroundColor: 'red' 
+                        }]} />
+                        <Text style={styles.activityText}>{activity.name} ({activity.percentage}%)</Text>
+                    </View>
+                ))}
+            </View>
+            <View style={styles.separator} />
+          <Text style={styles.header}>Top Boosting Activities</Text>
+            <View style={styles.columnsContainer}>
+                {topBoosts.map(activity => (
+                    <View key={activity.name} style={styles.columnTopActivities}>
+                        <View style={[styles.energyFill, { 
+                            height: baseHeight + activity.percentage, // Combine base height with the percentage
+                            backgroundColor: 'green' 
+                        }]} />
+                        <Text style={styles.activityText}>{activity.name} ({activity.percentage}%)</Text>
+                    </View>
+                ))}
+            </View>
+
+            {/* Add a spacer at the bottom */}
+            <View style={styles.spacer} />
+        </ScrollView>
+        
+      </View>
        
       </ScrollView>
 
@@ -425,9 +472,9 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: '#ccc',
-    width: '80%', // Adjust width as needed
+    width: '100%', // Adjust width as needed
     alignSelf: 'center',
-    marginVertical: 10, // Space above and below the line
+    marginVertical: 40, // Space above and below the line
   },
   inputContainer: {
     alignItems: 'center',
@@ -476,6 +523,7 @@ const styles = StyleSheet.create({
   barContainer: {
     marginTop: 20,
   },
+  
   columnContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -490,6 +538,11 @@ columnSum: {
     alignItems: 'center',
     marginLeft: 5,
     marginRight: 5,
+    shadowColor: '#000', // Shadow for depth
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow
 },
 drainedColumn: {
     backgroundColor: 'red', // Color for drained energy
@@ -516,6 +569,37 @@ balanceText: {
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5, // For Android shadow
+},
+containerBars: {
+  padding: 5,
+},
+columnsContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 10,
+  
+},
+columnTopActivities: {
+  width: '12%', // Adjust width to fit 8 columns
+  alignItems: 'center',
+  padding: 0, // Remove padding to reduce space
+  
+},
+energyFill: {
+  width: '100%', // Full width for the column
+  shadowColor: '#000', // Shadow for depth
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 4,
+  elevation: 5, // For Android shadow
+  //minHeight: 30,
+},
+activityText: {
+  textAlign: 'center',
+  marginTop: 5,
+},
+spacer: {
+  height: 100, // Space at the bottom of the ScrollView
 },
 });
 
