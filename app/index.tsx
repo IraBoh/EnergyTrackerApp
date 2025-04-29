@@ -1,6 +1,6 @@
 // app/index.tsx
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableOpacity, Text, Animated } from 'react-native';
+import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableOpacity, Text, Animated, Alert } from 'react-native';
 import EnergyBar from './components/EnergyBar';
 import ActivityButton from './components/ActivityButton';
 import MotivationMessage from './components/MotivationMessage';
@@ -61,6 +61,7 @@ function App() {
         console.error('Error updating energy level:', error);
     }
   };
+  
 
   const handleActivity = (type: 'drain' | 'boost', activityId: string) => {
     // Allow selection only if the activity is not already selected
@@ -180,11 +181,43 @@ function App() {
   };
 
   const deleteActivity = (type: 'drain' | 'boost', activityId: string) => {
-    if (type === 'drain') {
-        setDrains((prev) => prev.filter(item => item._id !== activityId)); // Remove drain activity
-    } else if (type === 'boost') {
-        setBoosts((prev) => prev.filter(item => item._id !== activityId)); // Remove boost activity
-    }
+    // Show confirmation dialog
+    Alert.alert(
+        "Confirm Deletion",
+        "Are you sure you want to delete this activity? It will be deleted and you will have to add it next time manually.",
+        [
+            {
+                text: "Cancel",
+                style: "cancel", // Cancel button
+            },
+            {
+                text: "Delete",
+                onPress: async () => {
+                    // Proceed with deletion if confirmed
+                    if (type === 'drain') {
+                        setDrains((prev) => prev.filter(item => item._id !== activityId)); // Remove drain activity
+                    } else if (type === 'boost') {
+                        setBoosts((prev) => prev.filter(item => item._id !== activityId)); // Remove boost activity
+                    }
+                    try {
+                        const response = await fetch(`http://192.168.1.138:5000/activities/${activityId}`, {
+                            method: 'DELETE',
+                        });
+                        if (response.status === 204) {
+                            console.log('Activity deleted successfully');
+                        } else {
+                            const errorData = await response.json();
+                            console.error('Error deleting activity:', errorData);
+                        }
+                    } catch (error) {
+                        console.error('Error deleting activity:', error);
+                    }
+                },
+                style: "destructive", // Style for the delete button
+            },
+        ],
+        { cancelable: true } // Allow canceling the alert
+    );
   };
 
   const editActivity = (type: 'drain' | 'boost', activityId: string) => {
@@ -208,7 +241,7 @@ function App() {
     });
   };
 
-  const saveActivity = async () => {
+  const updateActivity = async () => {
     console.log('Editing Activity Before Save:', editingActivity); // Log the current editing activity
 
     if (editingActivity) {
@@ -441,7 +474,7 @@ function App() {
                 }}
                 style={styles.input} // Add your input styles here
             />
-            <Button title="Save" onPress={saveActivity} />
+            <Button title="Update" onPress={updateActivity} />
         </View>
       )}
     </View>
