@@ -319,10 +319,21 @@ function App() {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.energyContainer}>
+      <View style={styles.containerInstructions}>
+      <Text style={styles.header}>YOUR BOOSTING AND DRAINING ACTIVITIES</Text>
+    <Text style={styles.instructionText}>
+        Start writing down everything that drains your energy lately and everything that gives you good energy and resources.
+    </Text>
+    <Text style={styles.instructionText}>
+        Take a moment to think about the activities, people, and situations that impact your energy levels. Understanding these factors can help you make better choices and create a more balanced and fulfilling life.
+    </Text>
+    </View>
+    {/* Horizontal line */}
+    <View style={styles.separator} />
+       {/*  <View style={styles.energyContainer}>
           <MotivationMessage energy={energy} />
           <EnergyBar energy={energy} />
-        </View>
+        </View> */}
         <View style={styles.sections}>
           <View style={styles.column}>
             <Text style={[styles.header, styles.drainedEnergy]}>Drained Energy</Text>
@@ -364,8 +375,21 @@ function App() {
         </View>
                {/* Horizontal line */}
                <View style={styles.separator} />
-          
-          <Text style={styles.balanceText}>✨ Pay attention to how your resources are divided. For better long-term health, keep the columns equal or focus on activities that boost the green column!</Text>
+               {/* Input field for new activity */}
+        <View style={styles.inputContainer}>
+        <Text style={styles.header}>ADD NEW ACTIVITY</Text>
+          <InputField
+            newActivity={newActivity}
+            setNewActivity={setNewActivity}
+            activityPercentage={activityPercentage}
+            setActivityPercentage={setActivityPercentage}
+            addActivity={addActivity}
+          />
+        </View>
+               {/* Horizontal line */}
+               <View style={styles.separator} />
+          <Text style={styles.header}>YOUR RESOURCES DISTRIBUTION</Text>
+         {/* <Text style={styles.balanceText}>✨ The columns below will show you how your resources are divided. For better long-term health, keep the columns equal or focus on activities that boost the green column!</Text> */}
               
          {/* Display Total Percentages */}
          <View style={styles.columnContainer}>
@@ -376,38 +400,43 @@ function App() {
           <View style={[styles.columnSum, styles.gaveColumn, { height: `${Math.min(sumPercentBoost, 100)}%` }]}>
             <Text style={styles.columnText}>Total Gave: {sumPercentBoost}%</Text>
           </View>
+      
         </View>
+         {/* Conditional Message */}
+         {sumPercentBoost > sumPercentDrains ? (
+              <Text style={styles.congratulationsText}>
+                  😌 Today you made more of the things that gave you energy than what drained you. You can be proud of yourself!
+              </Text>
+          ) : sumPercentBoost < sumPercentDrains ? (
+            <Text style={styles.warningText}>
+              😔 Today you made more of the things that drained you than what gave you energy. Do not give up, make something small but nice for yourself today.
+            </Text>
+          ): null}
+          
          {/* Horizontal line */}
          <View style={styles.separator} />
          <View style={styles.energyContainer}>
+         <Text style={styles.header}>YOUR ENERGY LEVEL</Text>
+        <Text> ✅ Reflection of Your Lifestyle and Choices </Text>
+         <EnergyBar energy= {energy} />
           <MotivationMessage energy={energy} />
-          <EnergyBar energy={energy} />
+
+        
         </View>
+        {/* Horizontal line */}
         <View style={styles.separator} />
         {/* Clear Filters button */}
         <View style={styles.inputContainer}>
+        <Text style={styles.header}>Clear Filters</Text>
           <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersButton}>
             <Text style={styles.clearFiltersText}>New Day ♻️</Text>
           </TouchableOpacity>
         </View>
      
-        {/* Horizontal line */}
-        <View style={styles.separator} />
-        {/* Input field for new activity */}
-        <View style={styles.inputContainer}>
-          <InputField
-            newActivity={newActivity}
-            setNewActivity={setNewActivity}
-            activityPercentage={activityPercentage}
-            setActivityPercentage={setActivityPercentage}
-            addActivity={addActivity}
-          />
-        </View>
         <View style={styles.separator} />
       <View>
-
       <ScrollView style={styles.containerBars}>
-            <Text style={styles.header}>Top Draining Activities</Text>
+            <Text style={styles.header}>TOP DRAINING ACTIVITIES</Text>
             <View style={styles.columnsContainer}>
                 {topDrains.map(activity => (
                     <View key={activity._id} style={styles.columnTopActivities}>
@@ -420,7 +449,7 @@ function App() {
                 ))}
             </View>
             <View style={styles.separator} />
-          <Text style={styles.header}>Top Boosting Activities</Text>
+          <Text style={styles.header}>TOP BOOSTING ACTIVITIES</Text>
             <View style={styles.columnsContainer}>
                 {topBoosts.map(activity => (
                     <View key={activity._id} style={styles.columnTopActivities}>
@@ -627,16 +656,12 @@ columnText: {
 balanceText: {
     fontSize: 16, // Font size
     color: 'black', // Text color
-    backgroundColor: '#f9f9f9', // Gainsboro background for visibility
+    //backgroundColor: '#f9f9f9', // Gainsboro background for visibility
     padding: 10, // Padding around the text
     borderRadius: 5, // Rounded corners
     marginTop: 20, // Space above the text
     textAlign: 'center', // Center the text
-    shadowColor: '#000', // Shadow for depth
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5, // For Android shadow
+ 
 },
 containerBars: {
   padding: 5,
@@ -668,6 +693,46 @@ activityText: {
 },
 spacer: {
   height: 100, // Space at the bottom of the ScrollView
+},
+congratulationsText: {
+  marginTop: 10,
+  fontSize: 16, // Font size
+    color: 'black', // Text color
+    //backgroundColor: '#f9f9f9', // Gainsboro background for visibility
+    padding: 10, // Padding around the text
+    borderRadius: 5, // Rounded corners
+  
+    textAlign: 'center', // Center the text
+  /*   shadowColor: '#000', // Shadow for depth
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow */
+},
+warningText: {
+  marginTop: 10,
+  fontSize: 16, // Font size
+    color: 'black', // Text color
+    //backgroundColor: '#f9f9f9', // Gainsboro background for visibility
+    padding: 10, // Padding around the text
+    borderRadius: 5, // Rounded corners
+  
+    textAlign: 'center', // Center the text
+/*     shadowColor: '#000', // Shadow for depth
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // For Android shadow */
+},
+containerInstructions: {
+  padding: 20,
+  alignItems: 'center',
+},
+instructionText: {
+  fontSize: 16,
+  color: '#333', // Dark gray for better readability
+  textAlign: 'center',
+  marginBottom: 20, // Space between the instruction text and the energy columns
 },
 });
 

@@ -8,9 +8,10 @@ type EnergyProps = {
 
 export default function EnergyBar({ energy }: EnergyProps) {
   // Determine color based on energy level
-  let fillColor = 'green';
-  if (energy <= 60) fillColor = 'orange';
-  if (energy <= 30) fillColor = 'red';
+  let fillColor = '#008000';
+  if (energy <= 70) fillColor = '#66CDAA';
+  if (energy <= 40) fillColor = '#90EE90';
+  if (energy <= 0) fillColor = 'red';
 
   return (
     <View style={styles.energyContainer}>
