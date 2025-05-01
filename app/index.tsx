@@ -296,14 +296,17 @@ function App() {
     setEditingActivity(null); // Clear editing state
   };
 
-  // Calculate total percentages based on selected activities
-  const sumPercentDrains = drains
-    .filter(activity => selectedActivities[activity._id]) // Only include selected activities
-    .reduce((total, activity) => total + activity.percentage, 0);//Understand why reduce is used here
+  const calculateSumDrainedGave = () => {
+    const sumPercentDrains = drains
+        .filter(activity => selectedActivities[activity._id]) // Only include selected activities
+        .reduce((total, activity) => total + activity.percentage, 0);
 
-  const sumPercentBoost = boosts
-    .filter(activity => selectedActivities[activity._id]) // Only include selected activities
-    .reduce((total, activity) => total + activity.percentage, 0);
+    const sumPercentBoost = boosts
+        .filter(activity => selectedActivities[activity._id]) // Only include selected activities
+        .reduce((total, activity) => total + activity.percentage, 0);
+
+    return { sumPercentDrains, sumPercentBoost };
+  };
 
   // Get top 8 draining and boosting activities
   const topDrains = drains
@@ -315,6 +318,40 @@ function App() {
     .slice(0, 8);
 
   const baseHeight = 40; // Base height for visibility
+
+  const saveResourcesDistribution = async (drained: number, gave: number  ) => {
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+
+    try {
+        const response = await fetch('http://192.168.1.138:5000/resources-distribution', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ date: today, drained, gave }),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save resources distribution data');
+        }
+
+        const data = await response.json();
+        console.log('Resources distribution data saved:', data);
+    } catch (error) {
+        console.error('Error saving resources distribution:', error);
+    }
+  };
+
+  const handleResourcesDistributionData = () => {
+    const { sumPercentDrains, sumPercentBoost } = calculateSumDrainedGave();
+    saveResourcesDistribution(sumPercentDrains, sumPercentBoost);
+  };
+
+  // useEffect to save data whenever energy or selectedActivities change
+  useEffect(() => {
+    // Only save sums when selected activities change
+    handleResourcesDistributionData(); 
+  }, [selectedActivities]); // Trigger effect only when selectedActivities change
 
   return (
     <View style={{ flex: 1 }}>
@@ -330,10 +367,6 @@ function App() {
     </View>
     {/* Horizontal line */}
     <View style={styles.separator} />
-       {/*  <View style={styles.energyContainer}>
-          <MotivationMessage energy={energy} />
-          <EnergyBar energy={energy} />
-        </View> */}
         <View style={styles.sections}>
           <View style={styles.column}>
             <Text style={[styles.header, styles.drainedEnergy]}>Drained Energy</Text>
@@ -394,20 +427,20 @@ function App() {
          {/* Display Total Percentages */}
          <View style={styles.columnContainer}>
           
-          <View style={[styles.columnSum, styles.drainedColumn, { height: `${Math.min(sumPercentDrains, 100)}%` }]}>
-            <Text style={styles.columnText}>Total Drained: {sumPercentDrains}%</Text>
+          <View style={[styles.columnSum, styles.drainedColumn, { height: `${Math.min(calculateSumDrainedGave().sumPercentDrains, 100)}%` }]}>
+            <Text style={styles.columnText}>Total Drained: {calculateSumDrainedGave().sumPercentDrains}%</Text>
           </View>
-          <View style={[styles.columnSum, styles.gaveColumn, { height: `${Math.min(sumPercentBoost, 100)}%` }]}>
-            <Text style={styles.columnText}>Total Gave: {sumPercentBoost}%</Text>
+          <View style={[styles.columnSum, styles.gaveColumn, { height: `${Math.min(calculateSumDrainedGave().sumPercentBoost, 100)}%` }]}>
+            <Text style={styles.columnText}>Total Gave: {calculateSumDrainedGave().sumPercentBoost}%</Text>
           </View>
       
         </View>
          {/* Conditional Message */}
-         {sumPercentBoost > sumPercentDrains ? (
+         {calculateSumDrainedGave().sumPercentBoost > calculateSumDrainedGave().sumPercentDrains ? (
               <Text style={styles.congratulationsText}>
                   😌 Today you made more of the things that gave you energy than what drained you. You can be proud of yourself!
               </Text>
-          ) : sumPercentBoost < sumPercentDrains ? (
+          ) : calculateSumDrainedGave().sumPercentBoost < calculateSumDrainedGave().sumPercentDrains ? (
             <Text style={styles.warningText}>
               😔 Today you made more of the things that drained you than what gave you energy. Do not give up, make something small but nice for yourself today.
             </Text>
@@ -703,26 +736,15 @@ congratulationsText: {
     borderRadius: 5, // Rounded corners
   
     textAlign: 'center', // Center the text
-  /*   shadowColor: '#000', // Shadow for depth
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5, // For Android shadow */
 },
 warningText: {
   marginTop: 10,
   fontSize: 16, // Font size
     color: 'black', // Text color
-    //backgroundColor: '#f9f9f9', // Gainsboro background for visibility
     padding: 10, // Padding around the text
     borderRadius: 5, // Rounded corners
   
     textAlign: 'center', // Center the text
-/*     shadowColor: '#000', // Shadow for depth
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5, // For Android shadow */
 },
 containerInstructions: {
   padding: 20,
