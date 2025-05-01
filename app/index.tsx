@@ -7,6 +7,9 @@ import MotivationMessage from './components/MotivationMessage';
 import InputField from './components/InputField';
 import SettingsWidget from './components/SettingsWidget';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ResourceCalendar from './components/ResourceCalendar';
+import StatisticsGraph from './components/StatisticsGraph';
 
 function App() {
   const [energy, setEnergy] = useState(0); // Renamed here
@@ -75,18 +78,18 @@ function App() {
     if (activityItem) {
         const energyChange = activityItem.percentage; // Get the percentage for the activity
         let newEnergyLevel: number; // Declare newEnergyLevel as a number
-        
+
         // Calculate new energy level based on activity type
         if (type === 'drain') {
-          newEnergyLevel = energy - energyChange; // Allow negative values
+            newEnergyLevel = energy - energyChange; // Allow negative values
         } else if (type === 'boost') {
             newEnergyLevel = energy + energyChange; // Allow values above 100
         } else {
             newEnergyLevel = energy; // Default to current energy if type is not recognized
         }
 
-         // Update local state
-         setEnergy(newEnergyLevel);
+        // Update local state for energy
+        setEnergy(newEnergyLevel);
         // Call the function to update the energy level in the database
         updateEnergyLevel(newEnergyLevel);
 
@@ -95,6 +98,15 @@ function App() {
             ...prev,
             [activityId]: !prev[activityId], // Toggle selection
         }));
+
+       /*  // Save selected activities to AsyncStorage
+        saveSelectedActivitiesToAsyncStorage({
+            ...selectedActivities,
+            [activityId]: !selectedActivities[activityId], // Toggle selection
+        });
+
+        // Save sums after updating the state, only if there are selected activities
+        handleResourcesDistributionData(); // Call to save updated sums */
     }
   };
 
@@ -353,6 +365,40 @@ function App() {
     handleResourcesDistributionData(); 
   }, [selectedActivities]); // Trigger effect only when selectedActivities change
 
+  /* const saveSelectedActivitiesToAsyncStorage = async (activities: any) => {
+    try {
+        await AsyncStorage.setItem('selectedActivities', JSON.stringify(activities));
+    } catch (error) {
+        console.error('Error saving selected activities:', error);
+    }
+};
+
+  useEffect(() => {
+    const loadSelectedActivities = async () => {
+        try {
+            const savedActivities = await AsyncStorage.getItem('selectedActivities');
+            if (savedActivities) {
+                setSelectedActivities(JSON.parse(savedActivities));
+            }
+        } catch (error) {
+            console.error('Error loading selected activities:', error);
+        }
+    };
+
+    loadSelectedActivities();
+  }, []);
+
+  const updateSelectedActivities = async (activityId: string) => {
+    setSelectedActivities((prev) => {
+        const newActivities = {
+            ...prev,
+            [activityId]: !prev[activityId], // Toggle selection
+        };
+        saveSelectedActivitiesToAsyncStorage(newActivities); // Save to AsyncStorage
+        return newActivities;
+    });
+  }; */
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -421,8 +467,8 @@ function App() {
         </View>
                {/* Horizontal line */}
                <View style={styles.separator} />
-          <Text style={styles.header}>YOUR RESOURCES DISTRIBUTION</Text>
-         {/* <Text style={styles.balanceText}>✨ The columns below will show you how your resources are divided. For better long-term health, keep the columns equal or focus on activities that boost the green column!</Text> */}
+          <Text style={styles.header}>YOUR RESOURCES DISTRIBUTION FOR TODAY</Text>
+         <Text style={styles.balanceText}>✨ The columns below will show you how your resources are divided. For better long-term health, keep the columns equal or focus on activities that boost the green column!</Text>
               
          {/* Display Total Percentages */}
          <View style={styles.columnContainer}>
@@ -496,11 +542,19 @@ function App() {
             </View>
 
             {/* Add a spacer at the bottom */}
-            <View style={styles.spacer} />
+            {/* <View style={styles.spacer} /> */}
+            <View style={styles.separator} />
+            <Text style={styles.header}>COMPARISON OF YOUR RESOURCES DISTRIBUTION OVER THE TIME</Text>
+            <StatisticsGraph />
+            <View style={styles.separator} />
+            <Text style={styles.header}>YOUR RESOURCES DISTRIBUTION CALENDAR</Text>
+            <Text>✅ <Text style={styles.greenText}>GREEN:</Text> These are your good days where you maintained a balanced energy level. Keep up the great work!</Text>
+            <Text>🔻 <Text style={styles.redText}>RED:</Text> These are challenging days where you may have felt drained. Reflect on what you can do differently to improve your balance.</Text>
+            <ResourceCalendar />
+            
         </ScrollView>
-        
       </View>
-       
+  
       </ScrollView>
 
       {/* Render the SettingsWidget outside the ScrollView */}
@@ -539,6 +593,7 @@ function App() {
             <Button title="Update" onPress={updateActivity} />
         </View>
       )}
+    
     </View>
   );
 }
@@ -755,6 +810,12 @@ instructionText: {
   color: '#333', // Dark gray for better readability
   textAlign: 'center',
   marginBottom: 20, // Space between the instruction text and the energy columns
+},
+greenText: {
+  color: 'green',
+},
+redText: {
+  color: 'red',
 },
 });
 
