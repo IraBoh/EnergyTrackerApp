@@ -1,28 +1,31 @@
 // app/index.tsx
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableOpacity, Text, Animated, Alert } from 'react-native';
+import { View, StyleSheet, Dimensions, TextInput, Button, ScrollView, TouchableOpacity, Text, Animated, Alert, FlatList } from 'react-native';
 import EnergyBar from './components/EnergyBar';
 import ActivityButton from './components/ActivityButton';
 import MotivationMessage from './components/MotivationMessage';
 import InputField from './components/InputField';
 import SettingsWidget from './components/SettingsWidget';
 const { width, height } = Dimensions.get('window'); // Get screen dimensions
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import ResourceCalendar from './components/ResourceCalendar';
 import StatisticsGraph from './components/StatisticsGraph';
+import ContraProInputForm from './components/ContraProInputForm';
+import ActivityList from './components/ActivityList';
 
 function App() {
   const [energy, setEnergy] = useState(0); // Renamed here
-  const [newActivity, setNewActivity] = useState(''); // State for new activity input
+  const [drainActivity, setDrainActivity] = useState(''); // State for new activity input
   const [selectedActivities, setSelectedActivities] = useState<{ [key: string]: boolean }>({}); // Track selected activities
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
   const slideAnim = useState(new Animated.Value(-300))[0]; // Initial position off-screen
-  const [activityPercentage, setActivityPercentage] = useState('');
+  const [drainPercentage, setDrainPercentage] = useState('');
   const [editingActivity, setEditingActivity] = useState<{_id: string; name: string; percentage: number; originalName: string } | null>(null);
   const [drains, setDrains] = useState<{_id: string; name: string; percentage: number }[]>([]);
   const [boosts, setBoosts] = useState<{_id: string; name: string; percentage: number }[]>([]);
+  const [boostActivity, setBoostActivity] = useState('');
+  const [boostPercentage, setBoostPercentage] = useState('');
+  const [contraProActivities, setContraProActivities] = useState([]);
   
-
  
 
   useEffect(() => {
@@ -129,12 +132,12 @@ function App() {
   }, []);
 
   const addActivity = async (type: 'drain' | 'boost') => {
-    if (newActivity.trim() === '' || activityPercentage.trim() === '') return; // Prevent adding empty activities
-    const percentage = parseFloat(activityPercentage); // Parse the percentage as a number
+    if (drainActivity.trim() === '' || drainPercentage.trim() === '') return; // Prevent adding empty activities
+    const percentage = parseFloat(drainPercentage); // Parse the percentage as a number
 
     if (isNaN(percentage)) return; // Prevent adding if percentage is not a valid number
 
-    const activityData = { name: newActivity, percentage, type };
+    const activityData = { name: drainActivity, percentage, type };
 
     try {
         const response = await fetch('http://192.168.1.138:5000/activities/add', {
@@ -159,12 +162,89 @@ function App() {
         }
 
         // Clear input fields after adding
-        setNewActivity('');
-        setActivityPercentage('');
+        setDrainActivity('');
+        setDrainPercentage('');
     } catch (error) {
         console.error('Error adding activity:', error);
     }
   };
+
+
+  const addDrainBoostActivity = async () => {
+    // Validate inputs
+    if (
+        drainActivity.trim() === '' ||
+        drainPercentage.trim() === '' ||
+        boostActivity.trim() === '' ||
+        boostPercentage.trim() === ''
+    ) {
+        return; // Prevent adding empty activities
+    }
+
+    const drainPercentageValue = parseFloat(drainPercentage); // Parse drain percentage as a number
+    const boostPercentageValue = parseFloat(boostPercentage); // Parse boost percentage as a number
+
+    if (isNaN(drainPercentageValue) || isNaN(boostPercentageValue)) {
+        return; // Prevent adding if percentages are not valid numbers
+    }
+
+    // Create activity data for both drain and boost
+    const activityData = {
+        drainActivity,
+        drainPercentage: drainPercentageValue,
+        boostActivity,
+        boostPercentage: boostPercentageValue,
+    };
+
+    try {
+        // Send a single POST request to save both activities
+        const response = await fetch('http://192.168.1.138:5000/contra-pro-activities', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(activityData),
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add activities');
+        }
+
+        const newActivitiesFromServer = await response.json();
+
+        // Update local state with the new activities
+        setDrains((prev) => [...prev, newActivitiesFromServer.drain]);
+        setBoosts((prev) => [...prev, newActivitiesFromServer.boost]);
+
+        // Clear input fields after adding
+        setDrainActivity('');
+        setDrainPercentage('');
+        setBoostActivity('');
+        setBoostPercentage('');
+        fetchContraProActivities();
+    } catch (error) {
+        console.error('Error adding activities:', error);
+    }
+  };
+
+
+  const fetchContraProActivities = async () => {
+    try {
+        const response = await fetch('http://192.168.1.138:5000/contra-pro-activities');
+        if (!response.ok) {
+            throw new Error('Failed to fetch activities');
+        }
+        const data = await response.json();
+        setContraProActivities(data); // Step 2: Update state with fetched data
+    } catch (error) {
+        console.error('Error fetching ContraPro activities:', error);
+    }
+};
+
+useEffect(() => {
+  fetchContraProActivities(); // Fetch activities on component mount
+}, []);
+
 
   const clearFilters = () => {
     setSelectedActivities({}); // Clear selected activities
@@ -365,39 +445,7 @@ function App() {
     handleResourcesDistributionData(); 
   }, [selectedActivities]); // Trigger effect only when selectedActivities change
 
-  /* const saveSelectedActivitiesToAsyncStorage = async (activities: any) => {
-    try {
-        await AsyncStorage.setItem('selectedActivities', JSON.stringify(activities));
-    } catch (error) {
-        console.error('Error saving selected activities:', error);
-    }
-};
-
-  useEffect(() => {
-    const loadSelectedActivities = async () => {
-        try {
-            const savedActivities = await AsyncStorage.getItem('selectedActivities');
-            if (savedActivities) {
-                setSelectedActivities(JSON.parse(savedActivities));
-            }
-        } catch (error) {
-            console.error('Error loading selected activities:', error);
-        }
-    };
-
-    loadSelectedActivities();
-  }, []);
-
-  const updateSelectedActivities = async (activityId: string) => {
-    setSelectedActivities((prev) => {
-        const newActivities = {
-            ...prev,
-            [activityId]: !prev[activityId], // Toggle selection
-        };
-        saveSelectedActivitiesToAsyncStorage(newActivities); // Save to AsyncStorage
-        return newActivities;
-    });
-  }; */
+  
 
   return (
     <View style={{ flex: 1 }}>
@@ -452,16 +500,17 @@ function App() {
             ))}
           </View>
         </View>
-               {/* Horizontal line */}
+                 {/* Horizontal line */}
                <View style={styles.separator} />
+           
                {/* Input field for new activity */}
         <View style={styles.inputContainer}>
         <Text style={styles.header}>ADD NEW ACTIVITY</Text>
           <InputField
-            newActivity={newActivity}
-            setNewActivity={setNewActivity}
-            activityPercentage={activityPercentage}
-            setActivityPercentage={setActivityPercentage}
+            newActivity={drainActivity}
+            setNewActivity={setDrainActivity}
+            activityPercentage={drainPercentage}
+            setActivityPercentage={setDrainPercentage}
             addActivity={addActivity}
           />
         </View>
@@ -551,7 +600,23 @@ function App() {
             <Text>✅ <Text style={styles.greenText}>GREEN:</Text> These are your good days where you maintained a balanced energy level. Keep up the great work!</Text>
             <Text>🔻 <Text style={styles.redText}>RED:</Text> These are challenging days where you may have felt drained. Reflect on what you can do differently to improve your balance.</Text>
             <ResourceCalendar />
+            <View style={styles.separator} />
+               <ContraProInputForm 
+               drainActivity={drainActivity}
+               setDrainActivity={setDrainActivity}
+               drainPercentage={drainPercentage}
+               setDrainPercentage={setDrainPercentage}
+               addDrainBoostActivity={addDrainBoostActivity}
+               boostActivity={boostActivity}
+               setBoostActivity={setBoostActivity}
+               boostPercentage={boostPercentage}
+               setBoostPercentage={setBoostPercentage}
             
+               />
+               {/* Horizontal line */}
+               <View style={styles.separator} />
+               <Text style={styles.header}>DRAIN AND BOOST TRACKER</Text>
+            <ActivityList contraProActivities={contraProActivities} />
         </ScrollView>
       </View>
   
