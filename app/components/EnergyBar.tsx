@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { styles } from '../styles/components/energyBar.styles';
+import { energyBarStyles } from '../styles/components/energyBar.styles';
 
 type EnergyProps = {
   energy: number; // 0–100
@@ -14,13 +14,13 @@ export default function EnergyBar({ energy }: EnergyProps) {
   if (energy <= 0) fillColor = 'red';
 
   return (
-    <View style={styles.energyContainer}>
+    <View style={energyBarStyles.energyContainer}>
       {/* Energy bar */}
-      <View style={styles.energyWrapper}>
-        <View style={styles.energyBody}>
+      <View style={energyBarStyles.energyWrapper}>
+        <View style={energyBarStyles.energyBody}>
           <View
             style={[
-              styles.energyFill,
+              energyBarStyles.energyFill,
               {
                 width: `${energy}%`,
                 backgroundColor: fillColor,
@@ -29,9 +29,9 @@ export default function EnergyBar({ energy }: EnergyProps) {
           />
         </View>
         {/* Energy cap */}
-        <View style={styles.energyCap} />
+        <View style={energyBarStyles.energyCap} />
       </View>
-      <Text style={styles.energyText}>{energy}%</Text>
+      <Text style={energyBarStyles.energyText}>{energy}%</Text>
     </View>
   );
 }

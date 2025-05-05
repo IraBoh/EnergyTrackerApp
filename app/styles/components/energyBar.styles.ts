@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-export const styles = StyleSheet.create({
+export const energyBarStyles = StyleSheet.create({
   energyContainer: {
     alignItems: 'center',
     marginTop: 50,
@@ -34,3 +34,5 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
+export default energyBarStyles;
