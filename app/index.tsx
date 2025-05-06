@@ -11,6 +11,7 @@ import ResourceCalendar from './components/ResourceCalendar';
 import StatisticsGraph from './components/StatisticsGraph';
 import ContraProInputForm from './components/ContraProInputForm';
 import ActivityList from './components/ActivityList';
+import ToggledActivityList from './components/ToggledActivityList';
 
 function App() {
   const [energy, setEnergy] = useState(0); // Renamed here
@@ -25,6 +26,7 @@ function App() {
   const [boostActivity, setBoostActivity] = useState('');
   const [boostPercentage, setBoostPercentage] = useState('');
   const [contraProActivities, setContraProActivities] = useState([]);
+  const [isActivityListVisible, setActivityListVisible] = useState(true); // State for visibility
   
  
 
@@ -204,6 +206,7 @@ function App() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(activityData),
+    
         });
 
         if (!response.ok) {
@@ -447,6 +450,10 @@ useEffect(() => {
 
   
 
+  const toggleActivityList = () => {
+    setActivityListVisible(prev => !prev); // Toggle visibility
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -613,12 +620,14 @@ useEffect(() => {
                setBoostPercentage={setBoostPercentage}
             
                />
+              
                {/* Horizontal line */}
                <View style={styles.separator} />
                <Text style={styles.header}>DRAIN AND BOOST TRACKER</Text>
             <ActivityList contraProActivities={contraProActivities} />
+            <ToggledActivityList />
         </ScrollView>
-      </View>
+        </View>
   
       </ScrollView>
 
@@ -881,6 +890,11 @@ greenText: {
 },
 redText: {
   color: 'red',
+},
+activityListButton: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
 },
 });
 
