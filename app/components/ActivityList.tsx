@@ -28,7 +28,7 @@ interface ActivityListProps {
 const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [activityIdMap, setActivityIdMap] = useState<{ [key: string]: string }>({});
-
+  const [loading, setLoading] = useState(false); // Loading state
 
   const calculateTotals = () => {
     let totalDrains = 0;
@@ -53,60 +53,51 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     const id = item.drainActivity?._id || item.boostActivity?._id;
     if (!id) return;
 
-  
+    setLoading(true); // Start loading
+
     const isSelected = selectedActivities.includes(id);
     const newSelected = isSelected
-        ? selectedActivities.filter(existingId => existingId !== id)
-        : [...selectedActivities, id];
+      ? selectedActivities.filter(existingId => existingId !== id)
+      : [...selectedActivities, id];
 
     setSelectedActivities(newSelected);
 
-    if (!isSelected) {
-        // If the item is being toggled on, save it
-        try {
-            const response = await fetch('http://192.168.1.138:5000/todays-activities', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item),
-            });
+    try {
+      if (!isSelected) {
+        const response = await fetch('http://192.168.1.138:5000/todays-activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        });
 
-            if (!response.ok) throw new Error('Failed to save activity');
+        if (!response.ok) throw new Error('Failed to save activity');
 
-            const data = await response.json();
-            console.log('data', data);
-            const savedId = data.activity._id;
-            setActivityIdMap(prev => ({ ...prev, [id]: savedId }));
-        
+        const data = await response.json();
+        const savedId = data.activity._id;
+        setActivityIdMap(prev => ({ ...prev, [id]: savedId }));
 
-            Alert.alert('Success', data.message);
-        } catch (error) {
-            console.error('Error saving activity:', error);
-            Alert.alert('Error', 'Failed to save activity');
+        Alert.alert('Success', data.message);
+      } else {
+        const savedId = activityIdMap[id];
+        if (!savedId) {
+          Alert.alert('Error', 'Activity not found');
+          return;
         }
-    } else {
-      const savedId = activityIdMap[id]; // get the saved _id for this activity
 
-      console.log('Deleting activity:', id);
+        const response = await fetch(`http://192.168.1.138:5000/todays-activities/${savedId}`, {
+          method: 'DELETE',
+        });
 
-      if (!savedId) {
-        Alert.alert('Error', 'Activity not found');
-        return;
+        if (!response.ok) throw new Error('Failed to delete activity');
+
+        const data = await response.json();
+        Alert.alert('Success', data.message);
       }
-
-      // If the item is being toggled off, delete it
-      try {
-          const response = await fetch(`http://192.168.1.138:5000/todays-activities/${savedId}`, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) throw new Error('Failed to delete activity ');
-
-            const data = await response.json();
-            Alert.alert('Success', data.message);
-        } catch (error) {
-            console.error('Error deleting activity:', error);
-            Alert.alert('Error', 'Failed to delete activity FE');
-        }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', (error as Error).message);
+    } finally {
+      setLoading(false); // End loading
     }
   };
 
@@ -114,28 +105,28 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     const id = item.drainActivity?._id || item.boostActivity?._id || '';
     const isSelected = selectedActivities.includes(id);
 
-   
-
     return (
-      <View style={styles.row}>
-        <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
-        <Text style={styles.cell}>{item.drainActivity?.name || '-'}</Text>
-        <Text style={styles.cell}>{item.drainActivity?.percentage ?? '-'}%</Text>
-        <Text style={styles.cell}>{item.boostActivity?.name || '-'}</Text>
-        <Text style={styles.cell}>{item.boostActivity?.percentage ?? '-'}%</Text>
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>
+            {item.drainActivity?.name || item.boostActivity?.name || 'Unnamed Activity'}
+          </Text>
+          <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
+        </View>
+        <Text style={styles.cardDetail}>Drain: {item.drainActivity?.percentage ?? '-'}%</Text>
+        <Text style={styles.cardDetail}>Positive aspect: {item.boostActivity?.name}</Text>
+        <Text style={styles.cardDetail}>Boost: {item.boostActivity?.percentage ?? '-'}% </Text>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.headerCell}>Toggle</Text>
-        <Text style={styles.headerCell}>Activity</Text>
-        <Text style={styles.headerCell}>Drain %</Text>
-        <Text style={styles.headerCell}>Positive Reflection</Text>
-        <Text style={styles.headerCell}>Boost %</Text>
-      </View>
+      
+      <Text style={styles.sectionTitle}>✨ YOUR CUSTOM ACTIVITIES </Text>
+      <Text style={styles.sectionSubtext}>Add activities to your current plan by clicking the "Select" button.</Text>
+      <Text style={styles.sectionSubtext}>We'll analyze them to determine their impact on your well-being.</Text>
+
       <FlatList
         data={contraProActivities}
         keyExtractor={(item) =>
@@ -144,11 +135,6 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
         renderItem={renderItem}
         contentContainerStyle={styles.listContainer}
       />
-      <View style={styles.totalsContainer}>
-        <Text style={styles.totalText}>Total Drains: {totalDrains}%</Text>
-        <Text style={styles.totalText}>Total Boosts: {totalBoosts}%</Text>
-        <Text style={styles.totalText}>Net Energy: {netEnergy}%</Text>
-      </View>
     </View>
   );
 };
@@ -157,45 +143,45 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    minHeight: 300,
   },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-  },
-  cell: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  headerCell: {
-    flex: 1,
-    textAlign: 'center',
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    fontSize: 18,
+    marginBottom: 5,
+  },
+  sectionSubtext: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 10,
   },
   listContainer: {
-    paddingBottom: 50,
+    paddingBottom: 80,
   },
-  totalsContainer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    marginBottom: 0,
-  },
-  totalText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  card: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 12,
     marginBottom: 10,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cardDetail: {
+    fontSize: 16,
+    color: '#444',
+    marginBottom: 4,
   },
 });
 
