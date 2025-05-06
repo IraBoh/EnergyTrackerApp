@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Switch, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Define the types for drain and boost activities
 interface DrainActivity {
@@ -28,32 +29,28 @@ interface ActivityListProps {
 const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [activityIdMap, setActivityIdMap] = useState<{ [key: string]: string }>({});
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(false);
 
-  const calculateTotals = () => {
-    let totalDrains = 0;
-    let totalBoosts = 0;
-
-    contraProActivities.forEach((activity) => {
-      if (activity.drainActivity) {
-        totalDrains += activity.drainActivity.percentage;
+  // Load previously selected activities from AsyncStorage
+  useEffect(() => {
+    const loadSelectedActivities = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('selectedActivities');
+        if (saved) {
+          setSelectedActivities(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error('Failed to load saved selections', error);
       }
-      if (activity.boostActivity) {
-        totalBoosts += activity.boostActivity.percentage;
-      }
-    });
-
-    const netEnergy = totalBoosts - totalDrains;
-    return { totalDrains, totalBoosts, netEnergy };
-  };
-
-  const { totalDrains, totalBoosts, netEnergy } = calculateTotals();
+    };
+    loadSelectedActivities();
+  }, []);
 
   const handleToggle = async (item: ContraProActivityObject) => {
     const id = item.drainActivity?._id || item.boostActivity?._id;
     if (!id) return;
 
-    setLoading(true); // Start loading
+    setLoading(true);
 
     const isSelected = selectedActivities.includes(id);
     const newSelected = isSelected
@@ -63,7 +60,11 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     setSelectedActivities(newSelected);
 
     try {
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('selectedActivities', JSON.stringify(newSelected));
+
       if (!isSelected) {
+        // POST to backend
         const response = await fetch('http://192.168.1.138:5000/todays-activities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -78,6 +79,7 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
 
         Alert.alert('Success', data.message);
       } else {
+        // DELETE from backend
         const savedId = activityIdMap[id];
         if (!savedId) {
           Alert.alert('Error', 'Activity not found');
@@ -97,7 +99,7 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
       console.error('Error:', error);
       Alert.alert('Error', (error as Error).message);
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
@@ -114,17 +116,16 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
           <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
         </View>
         <Text style={styles.cardDetail}>Drain: {item.drainActivity?.percentage ?? '-'}%</Text>
-        <Text style={styles.cardDetail}>Positive aspect: {item.boostActivity?.name}</Text>
-        <Text style={styles.cardDetail}>Boost: {item.boostActivity?.percentage ?? '-'}% </Text>
+        <Text style={styles.cardDetail}>Positive aspect: {item.boostActivity?.name ?? '-'}</Text>
+        <Text style={styles.cardDetail}>Boost: {item.boostActivity?.percentage ?? '-'}%</Text>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      
-      <Text style={styles.sectionTitle}>✨ YOUR CUSTOM ACTIVITIES </Text>
-      <Text style={styles.sectionSubtext}>Add activities to your current plan by clicking the "Select" button.</Text>
+      <Text style={styles.sectionTitle}>✨ YOUR CUSTOM ACTIVITIES</Text>
+      <Text style={styles.sectionSubtext}>Add activities to your current plan by toggling the switch.</Text>
       <Text style={styles.sectionSubtext}>We'll analyze them to determine their impact on your well-being.</Text>
 
       <FlatList
