@@ -49,7 +49,7 @@ const ContraProInputForm: React.FC<ContraProInputFormProps> = ({
         <View style={styles.inputContainer}>
             {currentStep === 0 && (
                 <>
-                    <Text style={styles.question}>What is an activity that drains you?</Text>
+                    <Text style={styles.question}> 1. What is an activity that drains you?</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="Add your activity"
@@ -63,7 +63,7 @@ const ContraProInputForm: React.FC<ContraProInputFormProps> = ({
 
             {currentStep === 1 && (
                 <>
-                    <Text style={styles.question}>How much from 0 to 100% do you think it drains you?</Text>
+                    <Text style={styles.question}> 2. How much from 0 to 100% do you think it drains you?</Text>
                     <TextInput
                         style={styles.percentageInput}
                         placeholder="Percentage"
@@ -79,7 +79,7 @@ const ContraProInputForm: React.FC<ContraProInputFormProps> = ({
 
             {currentStep === 2 && (
                 <>
-                    <Text style={styles.question}>What is the positive aspect or reason for doing this?</Text>
+                    <Text style={styles.question}>3. What is the positive aspect or reason for doing this?</Text>
                     <TextInput
                         style={styles.input}
                         placeholder="Positive Aspect"
@@ -93,7 +93,7 @@ const ContraProInputForm: React.FC<ContraProInputFormProps> = ({
 
             {currentStep === 3 && (
                 <>
-                    <Text style={styles.question}>How much from 0 to 100% will it make you feel good once you have done it?</Text>
+                    <Text style={styles.question}>4. How much from 0 to 100% will it make you feel good once you have done it?</Text>
                     <TextInput
                         style={styles.percentageInput}
                         placeholder="Positive Percentage"
@@ -119,6 +119,7 @@ const ContraProInputForm: React.FC<ContraProInputFormProps> = ({
             )}
 
             <View style={styles.buttonContainer}>
+            
                 <TouchableOpacity
                     onPress={handleNext}
                     style={[styles.iconButton, { backgroundColor: '#4CAF50' }]} // Green button
@@ -134,18 +135,13 @@ const styles = StyleSheet.create({
     inputContainer: {
         marginBottom: 20,
         padding: 15,
-        backgroundColor: '#fff',
         borderRadius: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     question: {
         fontSize: 20,
         marginBottom: 10,
-        fontWeight: 'bold',
+        marginTop: 20,
+        
     },
     input: {
         borderWidth: 1,
@@ -153,6 +149,8 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 20,
         marginBottom: 10,
+        marginTop: 20,
+        fontSize: 20
     },
     percentageInput: {
         borderWidth: 1,
@@ -160,11 +158,13 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         padding: 20,
         marginBottom: 10,
+        fontSize: 20
     },
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 15,
+        marginTop: 20,
+        marginBottom: 5,
     },
     iconButton: {
         padding: 15,
