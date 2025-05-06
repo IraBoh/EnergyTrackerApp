@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, Switch, Alert } from 'react-native';
 
 // Define the types for drain and boost activities
 interface DrainActivity {
@@ -15,25 +15,26 @@ interface BoostActivity {
 }
 
 // Define the type for the activity object
-interface contraProActivityObject {
+interface ContraProActivityObject {
   drainActivity?: DrainActivity;
   boostActivity?: BoostActivity;
 }
 
-// Update the props to include the activities array
+// Props
 interface ActivityListProps {
-  contraProActivities: contraProActivityObject[];
+  contraProActivities: ContraProActivityObject[];
 }
 
 const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
-  const [activitiesState, setActivitiesState] = useState<contraProActivityObject[]>([]);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [activityIdMap, setActivityIdMap] = useState<{ [key: string]: string }>({});
 
-  // Function to calculate totals
+
   const calculateTotals = () => {
     let totalDrains = 0;
     let totalBoosts = 0;
 
-    contraProActivities.forEach(activity => {
+    contraProActivities.forEach((activity) => {
       if (activity.drainActivity) {
         totalDrains += activity.drainActivity.percentage;
       }
@@ -43,24 +44,93 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     });
 
     const netEnergy = totalBoosts - totalDrains;
-
     return { totalDrains, totalBoosts, netEnergy };
   };
 
   const { totalDrains, totalBoosts, netEnergy } = calculateTotals();
 
-  const renderItem = ({ item }: { item: contraProActivityObject }) => (
-    <View style={styles.row}>
-      <Text style={styles.cell}>{item.drainActivity?.name}</Text>
-      <Text style={styles.cell}>{item.drainActivity?.percentage}%</Text>
-      <Text style={styles.cell}>{item.boostActivity?.name}</Text>
-      <Text style={styles.cell}>{item.boostActivity?.percentage}%</Text>
-    </View>
-  );
+  const handleToggle = async (item: ContraProActivityObject) => {
+    const id = item.drainActivity?._id || item.boostActivity?._id;
+    if (!id) return;
+
+  
+    const isSelected = selectedActivities.includes(id);
+    const newSelected = isSelected
+        ? selectedActivities.filter(existingId => existingId !== id)
+        : [...selectedActivities, id];
+
+    setSelectedActivities(newSelected);
+
+    if (!isSelected) {
+        // If the item is being toggled on, save it
+        try {
+            const response = await fetch('http://192.168.1.138:5000/todays-activities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item),
+            });
+
+            if (!response.ok) throw new Error('Failed to save activity');
+
+            const data = await response.json();
+            console.log('data', data);
+            const savedId = data.activity._id;
+            setActivityIdMap(prev => ({ ...prev, [id]: savedId }));
+        
+
+            Alert.alert('Success', data.message);
+        } catch (error) {
+            console.error('Error saving activity:', error);
+            Alert.alert('Error', 'Failed to save activity');
+        }
+    } else {
+      const savedId = activityIdMap[id]; // get the saved _id for this activity
+
+      console.log('Deleting activity:', id);
+
+      if (!savedId) {
+        Alert.alert('Error', 'Activity not found');
+        return;
+      }
+
+      // If the item is being toggled off, delete it
+      try {
+          const response = await fetch(`http://192.168.1.138:5000/todays-activities/${savedId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) throw new Error('Failed to delete activity ');
+
+            const data = await response.json();
+            Alert.alert('Success', data.message);
+        } catch (error) {
+            console.error('Error deleting activity:', error);
+            Alert.alert('Error', 'Failed to delete activity FE');
+        }
+    }
+  };
+
+  const renderItem = ({ item }: { item: ContraProActivityObject }) => {
+    const id = item.drainActivity?._id || item.boostActivity?._id || '';
+    const isSelected = selectedActivities.includes(id);
+
+   
+
+    return (
+      <View style={styles.row}>
+        <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
+        <Text style={styles.cell}>{item.drainActivity?.name || '-'}</Text>
+        <Text style={styles.cell}>{item.drainActivity?.percentage ?? '-'}%</Text>
+        <Text style={styles.cell}>{item.boostActivity?.name || '-'}</Text>
+        <Text style={styles.cell}>{item.boostActivity?.percentage ?? '-'}%</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
+        <Text style={styles.headerCell}>Toggle</Text>
         <Text style={styles.headerCell}>Activity</Text>
         <Text style={styles.headerCell}>Drain %</Text>
         <Text style={styles.headerCell}>Positive Reflection</Text>
@@ -68,7 +138,9 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
       </View>
       <FlatList
         data={contraProActivities}
-        keyExtractor={(item) => item.drainActivity?._id || item.boostActivity?._id || Math.random().toString()}
+        keyExtractor={(item) =>
+          item.drainActivity?._id || item.boostActivity?._id || Math.random().toString()
+        }
         renderItem={renderItem}
         contentContainerStyle={styles.listContainer}
       />
@@ -85,7 +157,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    flexGrow: 1,
     minHeight: 300,
   },
   headerRow: {
@@ -97,6 +168,7 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 10,
   },
