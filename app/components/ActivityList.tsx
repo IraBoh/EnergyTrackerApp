@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Switch, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Define the types for drain and boost activities
 interface DrainActivity {
   _id: string;
   name: string;
@@ -15,13 +14,11 @@ interface BoostActivity {
   percentage: number;
 }
 
-// Define the type for the activity object
 interface ContraProActivityObject {
   drainActivity?: DrainActivity;
   boostActivity?: BoostActivity;
 }
 
-// Props
 interface ActivityListProps {
   contraProActivities: ContraProActivityObject[];
 }
@@ -31,7 +28,6 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
   const [activityIdMap, setActivityIdMap] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
-  // Load previously selected activities from AsyncStorage
   useEffect(() => {
     const loadSelectedActivities = async () => {
       try {
@@ -51,7 +47,6 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     if (!id) return;
 
     setLoading(true);
-
     const isSelected = selectedActivities.includes(id);
     const newSelected = isSelected
       ? selectedActivities.filter(existingId => existingId !== id)
@@ -60,11 +55,9 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     setSelectedActivities(newSelected);
 
     try {
-      // Save to AsyncStorage
       await AsyncStorage.setItem('selectedActivities', JSON.stringify(newSelected));
 
       if (!isSelected) {
-        // POST to backend
         const response = await fetch('http://192.168.1.138:5000/todays-activities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -79,7 +72,6 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
 
         Alert.alert('Success', data.message);
       } else {
-        // DELETE from backend
         const savedId = activityIdMap[id];
         if (!savedId) {
           Alert.alert('Error', 'Activity not found');
@@ -115,26 +107,34 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
           </Text>
           <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
         </View>
-        <Text style={styles.cardDetail}>Drain: {item.drainActivity?.percentage ?? '-'}%</Text>
-        <Text style={styles.cardDetail}>Positive aspect: {item.boostActivity?.name ?? '-'}</Text>
-        <Text style={styles.cardDetail}>Boost: {item.boostActivity?.percentage ?? '-'}%</Text>
+        <View style={styles.infoRow}>
+          <Text style={[styles.percentText, styles.drain]}>
+            -{item.drainActivity?.percentage ?? 0}%
+          </Text>
+          <Text style={[styles.percentText, styles.boost]}>
+            +{item.boostActivity?.percentage ?? 0}%
+          </Text>
+        </View>
+        {item.boostActivity?.name && (
+          <Text style={styles.tip}>Positive Aspect: {item.boostActivity.name}</Text>
+        )}
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>✨ YOUR CUSTOM ACTIVITIES</Text>
-      <Text style={styles.sectionSubtext}>Add activities to your current plan by toggling the switch.</Text>
-      <Text style={styles.sectionSubtext}>We'll analyze them to determine their impact on your well-being.</Text>
-
+      <Text style={styles.title}>✨ Your Custom Activities</Text>
+      <Text style={styles.subtitle}>
+        Toggle activities to include them in your daily plan.
+      </Text>
       <FlatList
         data={contraProActivities}
         keyExtractor={(item) =>
           item.drainActivity?._id || item.boostActivity?._id || Math.random().toString()
         }
         renderItem={renderItem}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
     </View>
   );
@@ -142,32 +142,30 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 20,
+    backgroundColor: '#F5F7FA',
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 8,
   },
-  sectionSubtext: {
+  subtitle: {
     fontSize: 16,
-    color: '#444',
-    marginBottom: 10,
-  },
-  listContainer: {
-    paddingBottom: 80,
+    color: '#555',
+    marginBottom: 16,
   },
   card: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 12,
+    borderRadius: 10,
+    padding: 14,
     marginBottom: 10,
-    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 1,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -176,14 +174,30 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
+    color: '#222',
   },
-  cardDetail: {
-    fontSize: 16,
-    color: '#444',
-    marginBottom: 4,
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  percentText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  drain: {
+    color: '#D9534F',
+  },
+  boost: {
+    color: '#5CB85C',
+  },
+  tip: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 4,
   },
 });
 
 export default ActivityList;
+
