@@ -19,9 +19,14 @@ interface ContraProActivityObject {
   boostActivity?: BoostActivity;
 }
 
-const ToggledActivityList: React.FC = () => {
+interface ToggledActivityListProps {
+  refreshToggle: boolean;   
+}
+
+const ToggledActivityList: React.FC<ToggledActivityListProps> = ({ refreshToggle }) => {
   const [toggledActivities, setToggledActivities] = useState<ContraProActivityObject[]>([]);
   const [completedActivities, setCompletedActivities] = useState<string[]>([]);
+
 
   useEffect(() => {
     const fetchToggledActivities = async () => {
@@ -36,7 +41,7 @@ const ToggledActivityList: React.FC = () => {
     };
 
     fetchToggledActivities();
-  }, []);
+  }, [refreshToggle]);
 
   const markAsDone = (id: string) => {
     setCompletedActivities((prev) =>

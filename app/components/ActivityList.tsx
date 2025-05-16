@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Switch, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Switch,
+  Alert,
+  TouchableOpacity,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface DrainActivity {
@@ -14,21 +22,35 @@ interface BoostActivity {
   percentage: number;
 }
 
-interface ContraProActivityObject {
-  drainActivity?: DrainActivity;
-  boostActivity?: BoostActivity;
+export interface ContraProActivityObject {
+  _id: string;
+  drainActivity: {
+    _id: string;
+    name: string;
+    percentage: number;
+    type: string;
+  };
+  boostActivity: {
+    _id: string;
+    name: string;
+    percentage: number;
+    type: string;
+  };
 }
+
 
 interface ActivityListProps {
   contraProActivities: ContraProActivityObject[];
+  deleteContraProActivity: (activity: ContraProActivityObject) => void;
+  triggerRefresh: () => void;
 }
 
-const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
+const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities, deleteContraProActivity, triggerRefresh }) => {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [activityIdMap, setActivityIdMap] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+/*   useEffect(() => {
     const loadSelectedActivities = async () => {
       try {
         const saved = await AsyncStorage.getItem('selectedActivities');
@@ -40,13 +62,13 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
       }
     };
     loadSelectedActivities();
-  }, []);
+  }, []); */
 
   const handleToggle = async (item: ContraProActivityObject) => {
     const id = item.drainActivity?._id || item.boostActivity?._id;
     if (!id) return;
 
-    setLoading(true);
+ /*    setLoading(true); */
     const isSelected = selectedActivities.includes(id);
     const newSelected = isSelected
       ? selectedActivities.filter(existingId => existingId !== id)
@@ -55,7 +77,7 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     setSelectedActivities(newSelected);
 
     try {
-      await AsyncStorage.setItem('selectedActivities', JSON.stringify(newSelected));
+      /* await AsyncStorage.setItem('selectedActivities', JSON.stringify(newSelected)); */
 
       if (!isSelected) {
         const response = await fetch('http://192.168.1.138:5000/todays-activities', {
@@ -71,6 +93,7 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
         setActivityIdMap(prev => ({ ...prev, [id]: savedId }));
 
         Alert.alert('Success', data.message);
+        triggerRefresh();
       } else {
         const savedId = activityIdMap[id];
         if (!savedId) {
@@ -86,6 +109,7 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
 
         const data = await response.json();
         Alert.alert('Success', data.message);
+        triggerRefresh();
       }
     } catch (error) {
       console.error('Error:', error);
@@ -93,6 +117,11 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDelete = async (item: ContraProActivityObject) => {
+      deleteContraProActivity(item);
+   
   };
 
   const renderItem = ({ item }: { item: ContraProActivityObject }) => {
@@ -105,7 +134,12 @@ const ActivityList: React.FC<ActivityListProps> = ({ contraProActivities }) => {
           <Text style={styles.cardTitle}>
             {item.drainActivity?.name || item.boostActivity?.name || 'Unnamed Activity'}
           </Text>
-          <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Switch value={isSelected} onValueChange={() => handleToggle(item)} />
+            <TouchableOpacity onPress={() => handleDelete(item)}>
+              <Text style={styles.deleteText}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.infoRow}>
           <Text style={[styles.percentText, styles.drain]}>
@@ -197,7 +231,13 @@ const styles = StyleSheet.create({
     color: '#555',
     marginTop: 4,
   },
+  deleteText: {
+    fontSize: 20,
+    color: '#D9534F',
+    marginLeft: 10,
+  },
 });
 
 export default ActivityList;
+
 

@@ -12,6 +12,8 @@ import StatisticsGraph from './components/StatisticsGraph';
 import ContraProInputForm from './components/ContraProInputForm';
 import ActivityList from './components/ActivityList';
 import ToggledActivityList from './components/ToggledActivityList';
+import { ContraProActivityObject } from './components/ActivityList';
+
 
 function App() {
   const [energy, setEnergy] = useState(0); // Renamed here
@@ -25,9 +27,9 @@ function App() {
   const [boosts, setBoosts] = useState<{_id: string; name: string; percentage: number }[]>([]);
   const [boostActivity, setBoostActivity] = useState('');
   const [boostPercentage, setBoostPercentage] = useState('');
-  const [contraProActivities, setContraProActivities] = useState([]);
+  const [contraProActivities, setContraProActivities] = useState<ContraProActivityObject[]>([]);
   const [isActivityListVisible, setActivityListVisible] = useState(true); // State for visibility
-  
+  const[refreshToggle, setRefreshToggle] = useState(false);
  
 
   useEffect(() => {
@@ -183,43 +185,47 @@ function App() {
         return; // Prevent adding empty activities
     }
 
-    const drainPercentageValue = parseFloat(drainPercentage); // Parse drain percentage as a number
-    const boostPercentageValue = parseFloat(boostPercentage); // Parse boost percentage as a number
+    const drainPercentageValue = parseFloat(drainPercentage);
+    const boostPercentageValue = parseFloat(boostPercentage);
 
     if (isNaN(drainPercentageValue) || isNaN(boostPercentageValue)) {
         return; // Prevent adding if percentages are not valid numbers
     }
 
-    // Create activity data for both drain and boost
+    // ✅ Create correctly structured activity data
     const activityData = {
-        drainActivity,
-        drainPercentage: drainPercentageValue,
-        boostActivity,
-        boostPercentage: boostPercentageValue,
+        drainActivity: {
+            name: drainActivity,
+            percentage: drainPercentageValue,
+            type: 'drain'
+        },
+        boostActivity: {
+            name: boostActivity,
+            percentage: boostPercentageValue,
+            type: 'boost'
+        }
     };
 
     try {
-        // Send a single POST request to save both activities
-        const response = await fetch('http://192.168.1.138:5000/contra-pro-activities', {
+        const response = await fetch('http://192.168.1.138:5000/contra-pro-pair-test', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(activityData),
-    
         });
 
         if (!response.ok) {
-            throw new Error('Failed to add activities');
+            throw new Error('Failed to add activities FE');
         }
 
         const newActivitiesFromServer = await response.json();
+        console.log('Add drainBoostActivity respon:', newActivitiesFromServer);
 
-        // Update local state with the new activities
         setDrains((prev) => [...prev, newActivitiesFromServer.drain]);
         setBoosts((prev) => [...prev, newActivitiesFromServer.boost]);
 
-        // Clear input fields after adding
+        // Clear input fields
         setDrainActivity('');
         setDrainPercentage('');
         setBoostActivity('');
@@ -228,26 +234,76 @@ function App() {
     } catch (error) {
         console.error('Error adding activities:', error);
     }
-  };
+};
 
 
   const fetchContraProActivities = async () => {
     try {
-        const response = await fetch('http://192.168.1.138:5000/contra-pro-activities');
+        const response = await fetch('http://192.168.1.138:5000/contra-pro-pair-test');
         if (!response.ok) {
             throw new Error('Failed to fetch activities');
         }
-        const data = await response.json();
-        setContraProActivities(data); // Step 2: Update state with fetched data
+        const fetchedContraProActivities = await response.json();
+        
+        console.log('Fetched ContraProPairTest:', fetchedContraProActivities);
+         setContraProActivities(fetchedContraProActivities); // Step 2: Update state with fetched data
     } catch (error) {
-        console.error('Error fetching ContraPro activities:', error);
+        console.error('Error fetching ContraProPairTest activities:', error);
     }
 };
+
 
 useEffect(() => {
   fetchContraProActivities(); // Fetch activities on component mount
 }, []);
 
+const deleteContraProActivity = async (activity: ContraProActivityObject) => {
+
+if (!activity || !activity._id) {
+  console.log("No valid activity to delete");
+  return;
+}
+const id = activity._id;
+console.log('ID:', id);
+  if (!id) return;
+
+  Alert.alert('Delete Activity', 'Are you sure you want to delete this activity?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+            try {
+              const response = await fetch(`http://192.168.1.138:5000/contra-pro-pair-test/${id}`, {
+               method: 'DELETE',
+             });
+            if (!response.ok) {
+              throw new Error('Failed to delete activity');
+      
+            } 
+            Alert.alert('Deleted', 'Activity successfully deleted');
+
+    // Update the local state to remove the deleted activity
+   /*  setContraProActivities(prevActivities => 
+      prevActivities.filter(item => 
+        item.drainActivity?._id !== id && item.boostActivity?._id !== id
+      )
+    ); */
+    // Filter by the top-level object _id
+    setContraProActivities(prevActivities =>
+      prevActivities.filter(item => item._id !== id)
+    );
+
+
+    console.log('Activity deleted successfully');
+  } catch (error) {
+    console.error('Error deleting activity:', error);
+  }
+  }
+  }
+  ]
+);
+};
 
   const clearFilters = () => {
     setSelectedActivities({}); // Clear selected activities
@@ -255,6 +311,7 @@ useEffect(() => {
 
   // Function to reorder activities based on selection
   const getOrderedDrains = () => {
+    console.log('Drains:', drains);
     const selected = drains.filter(item => selectedActivities[item._id]);
     const unselected = drains.filter(item => !selectedActivities[item._id]);
     return [...selected, ...unselected];
@@ -454,6 +511,10 @@ useEffect(() => {
     setActivityListVisible(prev => !prev); // Toggle visibility
   };
 
+  const triggerRefresh = () => {
+    setRefreshToggle(prev => !prev);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
@@ -471,40 +532,12 @@ useEffect(() => {
         <View style={styles.sections}>
           <View style={styles.column}>
             <Text style={[styles.header, styles.drainedEnergy]}>Drained Energy</Text>
-            {getOrderedDrains().map((item) => (
-                <View key={item._id} style={styles.activityItem}>
-                    <ActivityButton
-                        label={`${item.name}:🔻- ${item.percentage}%`}
-                        onPress={() => handleActivity('drain', item._id)}
-                        borderColor={selectedActivities[item._id] ? 'red' : '#ccc'}
-                        
-                    />
-                    <TouchableOpacity onPress={() => editActivity('drain', item._id)}>
-                        <Text style={{ color: 'blue' }}>📝</Text> {/* Pen icon */}
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteActivity('drain', item._id)}>
-                        <Text style={{ color: 'red' }}>🗑️</Text> {/* Garbage icon */}
-                    </TouchableOpacity>
-                </View>
-            ))}
+         {/*   //Getordered drains */}
+           
           </View>
           <View style={styles.column}>
             <Text style={[styles.header, styles.gaveEnergy]}>Gave Energy</Text>
-            {getOrderedBoosts().map((item) => (
-                <View key={item._id} style={styles.activityItem}>
-                    <ActivityButton
-                        label={`${item.name}:+ ${item.percentage}%`}
-                        onPress={() => handleActivity('boost', item._id)}
-                        borderColor={selectedActivities[item._id] ? 'green' : '#ccc'}
-                    />
-                    <TouchableOpacity onPress={() => editActivity('boost', item._id)}>
-                        <Text style={{ color: 'blue' }}>📝</Text> {/* Edit icon */}
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => deleteActivity('boost', item._id)}>
-                        <Text style={{ color: 'red' }}>🗑️</Text> {/* Delete icon */}
-                    </TouchableOpacity>
-                </View>
-            ))}
+          {/*  //Getordered boosts */}
           </View>
         </View>
                  {/* Horizontal line */}
@@ -623,9 +656,15 @@ useEffect(() => {
               
                {/* Horizontal line */}
                <View style={styles.separator} />
-               <Text style={styles.header}>DRAIN AND BOOST TRACKER</Text>
-            <ActivityList contraProActivities={contraProActivities} />
-            <ToggledActivityList />
+            <ActivityList 
+            contraProActivities={contraProActivities}
+            deleteContraProActivity={deleteContraProActivity}
+            triggerRefresh={triggerRefresh}
+            />
+            <ToggledActivityList
+            refreshToggle={refreshToggle}
+            />
+           
         </ScrollView>
         </View>
   
