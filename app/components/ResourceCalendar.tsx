@@ -1,159 +1,152 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 
 interface MarkedDate {
     marked: boolean;
     dotColor: string;
-    gave: number;
-    drained: number;
-    difference?: number; // Optional property for the difference
 }
 
-// Function to load selected activities from the database
-const loadSelectedActivities = async (date: string) => {
+interface ActivityPair {
+    _id: string;
+    drainActivity: { name: string; percentage: number };
+    boostActivity: { name: string; percentage: number };
+}
+const ResourceCalendar = () => {
+    const [markedDates, setMarkedDates] = useState<{ [key: string]: MarkedDate }>({});
+    const [selectedActivities, setSelectedActivities] = useState<ActivityPair[]>([]);
+    const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
+
+const getRecentDates = (days: number): string[] => {
+    const dates: string[] = [];
+    const today = new Date();
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      dates.push(date.toISOString().split('T')[0]);
+    }
+    return dates;
+  };
+  
+  useEffect(() => {
+    const preloadMarkedDates = async () => {
+      const dates = getRecentDates(365); // look back 30 days
+      const marks: { [key: string]: MarkedDate } = {};
+  
+      for (const date of dates) {
+        const activities = await loadSavedActivities(date);
+  
+        if (activities.length > 0) {
+          let drain = 0;
+          let boost = 0;
+  
+          activities.forEach((a: ActivityPair) => {
+            if (a.drainActivity) drain += a.drainActivity.percentage;
+            if (a.boostActivity) boost += a.boostActivity.percentage;
+          });
+  
+          const net = boost - drain;
+  
+          marks[date] = {
+            marked: true,
+            dotColor: net > 0 ? 'green' : 'orange',
+          };
+        }
+      }
+      console.log("marks", marks);
+  
+      setMarkedDates(marks);
+    };
+  
+    preloadMarkedDates();
+  }, []);
+  
+
+
+// Load saved activities (with drainActivity and boostActivity)
+const loadSavedActivities = async (date: string) => {
     try {
-        const response = await fetch(`http://192.168.1.138:5000/selected-activity/${date}`);
-        const selectedActivities = await response.json();
-        return selectedActivities ? selectedActivities.activities : [];
+        const response = await fetch(`http://192.168.1.138:5000/saved-todays-activities/${date}`);
+        const data = await response.json();
+
+        if (Array.isArray(data)) {
+            return data;
+        } else if (Array.isArray(data.activities)) {
+            return data.activities;
+        } else {
+            return [];
+        }
     } catch (error) {
-        console.error('Error loading selected activities:', error);
+        console.error('Error loading saved activities:', error);
         return [];
     }
 };
 
-// Function to load the sums of drained and boosted activities
-const loadActivitySums = async (date: string) => {
-    try {
-        const response = await fetch(`http://192.168.1.138:5000/selected-activity/sum/${date}`);
-        const data = await response.json();
-        return data.status === 'success' ? data.data : { drainSum: 0, boostSum: 0 };
-    } catch (error) {
-        console.error('Error loading activity sums:', error);
-        return { drainSum: 0, boostSum: 0 };
-    }
-};
+    const onDayPress = async (day: { dateString: string }) => {
+        const date = day.dateString;
+        setCurrentDate(date);
 
-const ResourceCalendar = () => {
-    const [markedDates, setMarkedDates] = useState<{ [key: string]: MarkedDate }>({}); // Define the type for markedDates
-    const [selectedActivities, setSelectedActivities] = useState([]);
-    const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
-    const [totals, setTotals] = useState({ drainSum: 0, boostSum: 0 }); // State for totals
+        const activities = await loadSavedActivities(date);
+        setSelectedActivities(activities);
 
-    const fetchData = async () => {
-        try {
-            const response = await fetch('http://192.168.1.138:5000/resources-distribution'); // Replace with your actual endpoint
-            const data = await response.json();
-            
-            // Transform data into the format required by the calendar
-            const formattedData: { [key: string]: MarkedDate } = {};
-            data.forEach((item: { date: string; drained: number; gave: number }) => {
-                const difference = item.gave - item.drained; // Calculate the difference
-                formattedData[item.date] = {
-                    marked: true,
-                    gave: item.gave,
-                    drained: item.drained,
-                    dotColor: difference > 0 ? 'green' : 'red', // Customize the dot color based on the difference
-                    difference: difference, // Store the difference
-                };
-            });
-            setMarkedDates(formattedData);
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        }
+
     };
+    const calculateTotals = () => {
+        let totalDrains = 0;
+        let totalBoosts = 0;
+    
+        selectedActivities.forEach(activity => {
+          if (activity.drainActivity) totalDrains += activity.drainActivity.percentage;
+          if (activity.boostActivity) totalBoosts += activity.boostActivity.percentage;
+        });
+    
+        return {
+          totalDrains,
+          totalBoosts,
+          netEnergy: totalBoosts - totalDrains,
+        };
+      };
+    
+      const { totalDrains, totalBoosts, netEnergy } = calculateTotals();
 
     useEffect(() => {
-        fetchData(); // Call fetchData when the component mounts
-    }, []);
+        setMarkedDates(markedDates);
+    }, [markedDates]);
 
-    // Function to handle day press
-    const onDayPress = async (day: { dateString: string }) => {
-        const date = day.dateString; // Assuming day.dateString is the format you need
-        setCurrentDate(date); // Update the current date state
-
-        // Fetch selected activities for the pressed day
-        const activities = await loadSelectedActivities(date);
-        setSelectedActivities(activities); // Update the state with fetched activities
-
-        // Fetch the sums for the pressed day
-        const sums = await loadActivitySums(date);
-        setTotals(sums); // Update the state with fetched sums
-
-        // Log the selected activities and sums for the pressed day
-        console.log('Selected Activities for', date, activities);
-        console.log('Totals:', sums);
-    };
-
-    // Separate activities into drained and boosted
-    const drainedActivities = selectedActivities.filter((activity: { type: string }) => activity.type === 'drain');
-    const boostedActivities = selectedActivities.filter((activity: { type: string }) => activity.type === 'boost');
-
-    // Sort activities by percentage from highest to lowest
-    const sortedDrainedActivities = drainedActivities.sort((a: { percentage: number }, b: { percentage: number }) => b.percentage - a.percentage);
-    const sortedBoostedActivities = boostedActivities.sort((a: { percentage: number }, b: { percentage: number }) => b.percentage - a.percentage);
-
-    // Custom render function for each day
-    const renderDay = (date: { day: number; dateString: string }) => {
-        const markedDate = markedDates[date.dateString];
-        return (
-            <View style={styles.dayContainer}>
-                <Text>{date.day}</Text>
-                {markedDate && (
-                    <Text style={styles.differenceText}>
-                        {markedDate.difference! < 0 ? markedDate.difference : `+${markedDate.difference}`}
-                    </Text>
-                )}
-            </View>
-        );
-    };
-
-    const updateValues = async (date: string, newDrained: number, newGave: number) => {
-        try {
-            // Update the values in the database
-            await fetch('http://192.168.1.138:5000/resources-distribution', { // Adjusted URL to match the endpoint
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ date, drained: newDrained, gave: newGave }), // Include date in the request body
-            });
-
-            // After updating, fetch the latest data
-            fetchData(); // Call the function to refresh the data
-        } catch (error) {
-            console.error('Error updating values:', error);
-        }
-    };
+  
 
     return (
         <View style={styles.container}>
-            <Calendar
-                markedDates={markedDates}
-                onDayPress={onDayPress}
-                //renderDay={renderDay} // Use the custom render function
-            />
-            <Text style={styles.title}>Selected Activities for {currentDate}</Text>
-            <View style={styles.columns}>
-                <View style={styles.column}>
-                    <Text style={[styles.columnTitle, styles.drainedText]}>Drained:</Text>
-                    {sortedDrainedActivities.map((activity: { _id: string; name: string; percentage: number }) => (
-                        <Text key={activity._id} style={styles.text}>
-                            {activity.name} - {activity.percentage}%
-                        </Text>
-                    ))}
-                    <Text style={styles.total}>Total Drained: {totals.drainSum}%</Text>
-                </View>
-                <View style={styles.column}>
-                    <Text style={[styles.columnTitle, styles.boostedText]}>Boosted:</Text>
-                    {sortedBoostedActivities.map((activity: { _id: string; name: string; percentage: number }) => (
-                        <Text key={activity._id} style={styles.text}>
-                            {activity.name} + {activity.percentage}%
-                        </Text>
-                    ))}
-                    <Text style={styles.total}>Total Boosted: {totals.boostSum}%</Text>
-                </View>
-            </View>
+            <Calendar markedDates={markedDates} onDayPress={onDayPress} />
+
+            <Text style={styles.title}>Activities for {currentDate}</Text>
+
+<View style={styles.rowHeader}>
+  <Text style={[styles.headerCell, styles.drainedText]}>Drain Activity</Text>
+  <Text style={[styles.headerCell, styles.boostedText]}>Boost Activity</Text>
+</View>
+
+{selectedActivities.map((pair) => (
+  <View key={pair._id} style={styles.row}>
+    <Text style={styles.cell}>
+      {pair.drainActivity.name} - {pair.drainActivity.percentage}%
+    </Text>
+    <Text style={styles.cell}>
+      {pair.boostActivity.name} + {pair.boostActivity.percentage}%
+    </Text>
+  </View>
+))}
+
+<View style={styles.row}>
+  <Text style={[styles.totalCell, styles.drainedText]}>
+    Total Drained: {totalDrains}%
+  </Text>
+  <Text style={[styles.totalCell, styles.boostedText]}>
+    Total Boosted: {totalBoosts}%
+  </Text>
+  <Text style={[styles.totalCell]}>| Net: {netEnergy}% </Text>
+</View>
+
         </View>
     );
 };
@@ -163,15 +156,6 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         marginBottom: 200,
-    },
-    dayContainer: {
-        alignItems: 'center',
-        justifyContent: 'center', // Center the content
-        height: 50, // Set a height to ensure visibility
-    },
-    differenceText: {
-        color: 'black', // Customize the text color
-        fontSize: 12, // Adjust font size for better visibility
     },
     title: {
         fontSize: 18,
@@ -186,7 +170,6 @@ const styles = StyleSheet.create({
     column: {
         flex: 1,
         marginRight: 10,
-
     },
     columnTitle: {
         fontSize: 16,
@@ -207,6 +190,39 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginTop: 10,
     },
+
+    rowHeader: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+        borderColor: '#ccc',
+        marginTop: 10,
+        paddingBottom: 5,
+      },
+      
+      headerCell: {
+        flex: 1,
+        fontWeight: 'bold',
+        fontSize: 16,
+      },
+      
+      row: {
+        flexDirection: 'row',
+        paddingVertical: 4,
+      },
+      
+      cell: {
+        flex: 1,
+        fontSize: 15,
+        color: 'black',
+      },
+      
+      totalCell: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: 'bold',
+        marginTop: 10,
+      }
+      
 });
 
 export default ResourceCalendar;
