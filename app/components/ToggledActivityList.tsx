@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert, TouchableOpacity } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface DrainActivity {
   _id: string;
@@ -26,7 +27,9 @@ interface ToggledActivityListProps {
 const ToggledActivityList: React.FC<ToggledActivityListProps> = ({ refreshToggle }) => {
   const [toggledActivities, setToggledActivities] = useState<ContraProActivityObject[]>([]);
   const [completedActivities, setCompletedActivities] = useState<string[]>([]);
-
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchToggledActivities = async () => {
@@ -47,6 +50,10 @@ const ToggledActivityList: React.FC<ToggledActivityListProps> = ({ refreshToggle
     setCompletedActivities((prev) =>
       prev.includes(id) ? prev.filter(existingId => existingId !== id) : [...prev, id]
     );
+  };
+
+  const onClear = () => {
+    setToggledActivities([]);
   };
 
   const calculateTotals = () => {
@@ -102,6 +109,39 @@ const ToggledActivityList: React.FC<ToggledActivityListProps> = ({ refreshToggle
     return aCompleted === bCompleted ? 0 : aCompleted ? 1 : -1;
   });
 
+  const handleSave = async (date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    setLoading(true);
+    try {
+      // Save the activities to the database for a specific date
+      await fetch('http://192.168.1.138:5000/saved-todays-activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: formattedDate,
+          activities: sortedActivities,
+        }),
+      });
+      Alert.alert('Success', `Saved plan for ${formattedDate}. You can now view it in the Resource Calendar.`);
+
+      // Clear today's activities
+      const clearResponse = await fetch('http://192.168.1.138:5000/todays-activities/all', {
+        method: 'DELETE', // Assuming you want to delete today's activities
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!clearResponse.ok) {
+        throw new Error(`Failed to clear today's activities: ${clearResponse.status}`);
+      }
+
+      onClear(); // Clear the current list
+    } catch (err) {
+      Alert.alert('Error', 'Could not save plan or clear activities.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>📝 Today's Activities</Text>
@@ -117,6 +157,35 @@ const ToggledActivityList: React.FC<ToggledActivityListProps> = ({ refreshToggle
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 100 }}
       />
+      <View style={{ marginTop: 20 }}>
+        <TouchableOpacity
+          onPress={() => setShowPicker(true)}
+          style={styles.saveButton}
+          activeOpacity={0.7}
+          accessibilityLabel="Save this plan for a date"
+        >
+          <Text style={styles.saveButtonText}>📅 Save This Plan for a Date</Text>
+        </TouchableOpacity>
+
+        {showPicker && (
+          <DateTimePicker
+            value={selectedDate}
+            mode="date"
+            display="default"
+            onChange={(event: any, date: any) => {
+              if (event.type === 'dismissed') {
+                setShowPicker(false);
+                return;
+              }
+              setShowPicker(false);
+              if (date) {
+                setSelectedDate(date);
+                handleSave(date);
+              }
+            }}
+          />
+        )}
+      </View>
     </View>
   );
 };
@@ -175,6 +244,18 @@ const styles = StyleSheet.create({
   },
   boost: {
     color: '#5CB85C',
+  },
+  saveButton: {
+    backgroundColor: '#007BFF',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
 
