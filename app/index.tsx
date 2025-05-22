@@ -13,6 +13,8 @@ import ContraProInputForm from './components/ContraProInputForm';
 import ActivityList from './components/ActivityList';
 import ToggledActivityList from './components/ToggledActivityList';
 import { ContraProActivityObject } from './components/ActivityList';
+import BoostOnlyInputForm from './components/BoostOnlyInputForm';
+import BoostActivityList from './components/BoostActivityList';
 
 
 function App() {
@@ -30,7 +32,10 @@ function App() {
   const [contraProActivities, setContraProActivities] = useState<ContraProActivityObject[]>([]);
   const [isActivityListVisible, setActivityListVisible] = useState(true); // State for visibility
   const[refreshToggle, setRefreshToggle] = useState(false);
- 
+  const [onlyBoostActivity, setOnlyBoostActivity] = useState('');
+  const [onlyBoostPercentage, setOnlyBoostPercentage] = useState('');
+  const [refreshBoostList, setRefreshBoostList] = useState(false);
+
 
   useEffect(() => {
     const fetchEnergy = async () => {
@@ -237,6 +242,10 @@ function App() {
 };
 
 
+
+
+
+
   const fetchContraProActivities = async () => {
     try {
         const response = await fetch('http://192.168.1.138:5000/contra-pro-pair-test');
@@ -256,6 +265,40 @@ function App() {
 useEffect(() => {
   fetchContraProActivities(); // Fetch activities on component mount
 }, []);
+
+
+const addOnlyBoostActivity = async () => {
+  if (onlyBoostActivity.trim() === '' || onlyBoostPercentage.trim() === '') return; // Prevent adding empty activities
+  const percentage = parseFloat(onlyBoostPercentage); // Parse the percentage as a number
+
+  if (isNaN(percentage)) return; // Prevent adding if percentage is not a valid number
+  const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+
+  const activityData = {
+    date: today,
+    boostActivity: {
+    name: onlyBoostActivity,
+    percentage: percentage,
+    }
+  };
+  console.log('Activity Data:', activityData);
+  try {
+    const response = await fetch('http://192.168.1.138:5000/saved-todays-only-boost', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(activityData),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to add activity');
+    }
+    const newActivityFromServer = await response.json();
+    console.log('Add onlyBoostActivity respon:', newActivityFromServer);
+  } catch (error) {
+    console.error('Error adding activities:', error);
+  }
+};
 
 const deleteContraProActivity = async (activity: ContraProActivityObject) => {
 
@@ -507,12 +550,12 @@ console.log('ID:', id);
 
   
 
-  const toggleActivityList = () => {
-    setActivityListVisible(prev => !prev); // Toggle visibility
-  };
-
   const triggerRefresh = () => {
     setRefreshToggle(prev => !prev);
+  };
+
+  const triggerRefreshBoostList = () => {
+    setRefreshBoostList(prev => !prev);
   };
 
   return (
@@ -661,9 +704,23 @@ console.log('ID:', id);
             deleteContraProActivity={deleteContraProActivity}
             triggerRefresh={triggerRefresh}
             />
-            <ToggledActivityList
+
+            {/* Horizontal line */}
+            <View style={styles.separator} />
+           <ToggledActivityList
             refreshToggle={refreshToggle}
             />
+            <View style={styles.separator} />
+             <BoostOnlyInputForm
+            onlyBoostActivity={onlyBoostActivity}
+            setOnlyBoostActivity={setOnlyBoostActivity}
+            onlyBoostPercentage={onlyBoostPercentage}
+            setOnlyBoostPercentage={setOnlyBoostPercentage}
+            addOnlyBoostActivity={addOnlyBoostActivity}
+            triggerRefreshBoostList={triggerRefreshBoostList}
+            />
+            <View style={styles.separator} />
+            <BoostActivityList  refreshBoostList = {refreshBoostList}/>
            
         </ScrollView>
         </View>
